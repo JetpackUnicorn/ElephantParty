@@ -174,6 +174,9 @@ int main(int argc , char *argv[])
      
     /*send some data, c.send_data return true if 
       send(sock , data.c_str() , strlen( data.c_str() ) , 0) >= 0
+      
+      send_data (Operator):
+      http://www.halcon.com/download/reference/send_data.html
     */
     c.send_data("GET / HTTP/1.1\r\n\r\n");
      
