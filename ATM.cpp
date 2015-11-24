@@ -141,13 +141,13 @@ int main(int argc , char *argv[])
 
 
     string userName;
-    cout<<"Enter your user name";
+    cout<<"Enter your user name: ";
     cin>>userName;
 
-//check if it the username exists
+//check if the username exists
 
     int pinNum;
-    cout<<"Enter your PIN number";
+    cout<<"Enter your PIN number: ";
     cin>>pinNum;
 
 
@@ -159,12 +159,12 @@ int main(int argc , char *argv[])
     tcp_client c;
     string host;
      
-    cout<<"Enter hostname : ";
+    cout<<"Enter hostname: ";
     cin>>host;
 
     int portNum;
     cout<<"Enter port number: (test 80 for HTTP)";
-    cin>>host;
+    cin>>portNum;
 
 
 
@@ -172,7 +172,9 @@ int main(int argc , char *argv[])
     //connect to host
     c.conn(host , portNum);
      
-    //send some data
+    /*send some data, c.send_data return true if 
+      send(sock , data.c_str() , strlen( data.c_str() ) , 0) >= 0
+    */
     c.send_data("GET / HTTP/1.1\r\n\r\n");
      
     //receive and echo reply
