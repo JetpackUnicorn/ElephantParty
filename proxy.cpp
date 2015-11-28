@@ -14,11 +14,15 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <iostream>
 
 #include <pthread.h>
 #include <string.h>
 
+#include "tcp_client.h"
+
 static const int MAXPENDING = 5; // Maximum outstanding connection requests
+static const int BUFSIZE = 512;
 
 void HandleTCPClient(int clntSocket)
 {
@@ -37,7 +41,7 @@ void HandleTCPClient(int clntSocket)
     if (numBytesSent < 0)
       printf("send() failed");
     else if (numBytesSent != numBytesRcvd)
-      printf("send()", "sent unexpected number of bytes");
+      printf("send() sent unexpected number of bytes");
     
     // See if there is more data to receive
     numBytesRcvd = recv(clntSocket, buffer, BUFSIZE, 0);
@@ -55,7 +59,7 @@ int main(int argc, char* argv[])
 {
   if(argc != 3)
   {
-    printf("Usage: \"proxy\" \"client-port\" \"server-port\" \n");
+    printf("Usage: proxy <client-port> <server-port> \n");
     return -1;
   }
   
@@ -72,12 +76,12 @@ int main(int argc, char* argv[])
   
   //construct local address address
   struct sockaddr_in addr_l;                    //local address
-  memset(&servAddr, 0, sizeof(servAddr));       // Zero out structure
+  memset(&addr_l, 0, sizeof(addr_l));       // Zero out structure
   addr_l.sin_family = AF_INET;                  // IPv4 address family
   addr_l.sin_port = htons(client_p);            // Local Port
   
   //bind to local address
-  if(bind(servSock, (struct sockaddr*) &servAddr, sizeof(servAddr)) < 0)
+  if(bind(servSock, (struct sockaddr*) &addr_l, sizeof(addr_l)) < 0)
   {
     printf("failed to bind socket\n");
     return -1;
@@ -89,6 +93,12 @@ int main(int argc, char* argv[])
     printf("failed to listen on socket\n");
     return -1;
   }
+
+  // Connect to the bank
+  tcp_client c;
+  c.conn("localhost", server_p);
+
+  std::cout << "Proxy created successfully \nListening on port " << client_p << ", connected to bank on port " << server_p << std::endl;
   
   //loop forever
   while(1)

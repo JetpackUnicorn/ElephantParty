@@ -22,7 +22,12 @@ void initializeAccounts()
     ACCOUNTS["Alice"] = 100.0;
     ACCOUNTS["Bob"] = 50.0;
     ACCOUNTS["Eve"] = 0.0;
-} 
+}
+
+bool accountExists(string username)
+{
+    return ( ACCOUNTS.find(username) == ACCOUNTS.end() );
+}
 
 void deposit(string username, float amount)
 {
@@ -64,10 +69,16 @@ int main(int argc, char * argv[])
               sizeof(serv_addr)) < 0) 
               printError("ERROR on binding");
      listen(sockfd,5);
+     cout << "Bank initialized, listening on port " << portno << endl;
+
      clilen = sizeof(cli_addr);
+     cout << "Looking for proxy..." << endl;
      newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
      if (newsockfd < 0) 
           printError("ERROR on accept");
+     else {
+          cout << "Proxy found, connected" << endl;
+     }
      bzero(buffer,256);
      
     while(1)
