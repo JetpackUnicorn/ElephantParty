@@ -132,6 +132,21 @@ void transfer() {
 	}
 }
 
+void logout() {
+	if(!loggedIn) {
+		cout << "Not logged in" << endl;
+		return;
+	}
+	if(!c.disconn()) {
+		cerr << "ERROR: Could not disconnect" << endl;
+		return;
+	}
+	
+	cout << "Disconnected. Thank you" << endl;
+	currentUser = "";
+	loggedIn = false;
+}
+
 int main(int argc , char *argv[])
 {
 	if( argc != 2 ) {
@@ -151,7 +166,7 @@ int main(int argc , char *argv[])
 		else if(command == "balance") balance();
 		else if(command == "withdraw") withdraw();
 		else if(command == "transfer") transfer();
-		//else if(command == "logout") logout();
+		else if(command == "logout") logout();
 	}
 
 

@@ -25,4 +25,5 @@ public:
     bool conn(string, int);
     bool send_data(string data);
     string receive(int);
+    bool disconn();
 };

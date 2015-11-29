@@ -15,6 +15,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <iostream>
+#include <csignal>
 
 #include <pthread.h>
 #include <string.h>
@@ -23,6 +24,8 @@
 
 static const int MAXPENDING = 5; // Maximum outstanding connection requests
 static const int BUFSIZE = 512;
+
+tcp_client c;
 
 void HandleTCPClient(int clntSocket)
 {
@@ -36,13 +39,28 @@ void HandleTCPClient(int clntSocket)
   // Send received string and receive again until end of stream
   while (numBytesRcvd > 0)
   { // 0 indicates end of stream
-    // Echo message back to client
-    ssize_t numBytesSent = send(clntSocket, buffer, numBytesRcvd, 0);
-    if (numBytesSent < 0)
-      printf("send() failed");
-    else if (numBytesSent != numBytesRcvd)
-      printf("send() sent unexpected number of bytes");
     
+    // Echo message back to client
+    // ssize_t numBytesSent = send(clntSocket, buffer, numBytesRcvd, 0);
+    // if (numBytesSent < 0)
+    //   printf("send() failed");
+    // else if (numBytesSent != numBytesRcvd)
+    //   printf("send() sent unexpected number of bytes");
+    
+    // Forward message to bank
+    std::string msg = buffer;
+    if(!c.send_data(msg)) {
+      printf("Could not send message");
+    }
+
+    // Get response from bank
+    std::string resp = c.receive(512);
+    std::cout << resp << std::endl;
+    // Forward response to ATM
+    ssize_t bytesSent = send(clntSocket, resp.c_str(), strlen(resp.c_str())+1, 0);
+    if(bytesSent < 0)
+      printf("send() failed");
+
     // See if there is more data to receive
     numBytesRcvd = recv(clntSocket, buffer, BUFSIZE, 0);
     if (numBytesRcvd < 0)
@@ -62,6 +80,8 @@ int main(int argc, char* argv[])
     printf("Usage: proxy <client-port> <server-port> \n");
     return -1;
   }
+
+  signal(SIGCHLD, SIG_IGN);
   
   client_p = atoi(argv[1]);
   server_p = atoi(argv[2]);
@@ -95,7 +115,6 @@ int main(int argc, char* argv[])
   }
 
   // Connect to the bank
-  tcp_client c;
   c.conn("localhost", server_p);
 
   std::cout << "Proxy created successfully \nListening on port " << client_p << ", connected to bank on port " << server_p << std::endl;
@@ -115,15 +134,23 @@ int main(int argc, char* argv[])
     }
     
     // clntSock is connected to a client!
-    
-    
-    char clientName[INET_ADDRSTRLEN];                     // String to contain client address
-    if (inet_ntop(AF_INET, &clientAddr.sin_addr.s_addr, clientName, sizeof(clientName)) != NULL)
-      printf("Handling client %s/%d\n", clientName, ntohs(clientAddr.sin_port));
+    // fork to be able to handle multiple connections
+    int pid = fork();
+    if(pid == 0) {
+      close(servSock);
+
+      char clientName[INET_ADDRSTRLEN];                     // String to contain client address
+      if (inet_ntop(AF_INET, &clientAddr.sin_addr.s_addr, clientName, sizeof(clientName)) != NULL)
+        printf("Handling client %s/%d\n", clientName, ntohs(clientAddr.sin_port));
+      else
+        puts("Unable to get client address");
+      
+      HandleTCPClient(clientSock);
+
+      exit(0);
+    }
     else
-      puts("Unable to get client address");
-    
-    HandleTCPClient(clientSock);
+      close(clientSock);
     
     //pthread_t thread;
   }

@@ -5,6 +5,7 @@
 #include <sys/socket.h>    //socket
 #include <arpa/inet.h> //inet_addr
 #include <netdb.h> //hostent
+#include <unistd.h> //close
 #include <cstdlib> //exit
 
 #include "tcp_client.h"
@@ -92,12 +93,12 @@ bool tcp_client::conn(string address , int port)
 bool tcp_client::send_data(string data)
 {
     //Send some data
-    if( send(sock , data.c_str() , strlen( data.c_str() ) , 0) < 0)
+    if( send(sock , data.c_str() , strlen( data.c_str() )+1, 0) < 0)
     {
         perror("Send failed : ");
         return false;
     }
-    cout<<"Data send\n";
+    //cout<<"Data send\n";
      
     return true;
 }
@@ -118,4 +119,12 @@ string tcp_client::receive(int size=512)
      
     reply = buffer;
     return reply;
+}
+
+/**
+	Close the socket
+*/
+bool tcp_client::disconn()
+{
+	return (close(sock) == 0);
 }

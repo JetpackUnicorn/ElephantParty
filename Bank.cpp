@@ -16,6 +16,7 @@
 using namespace std;
 
 map <string, float> ACCOUNTS;
+static const int BUFSIZE = 512;
 
 void initializeAccounts()
 {
@@ -54,7 +55,7 @@ int main(int argc, char * argv[])
     
      int sockfd, newsockfd, portno;
      socklen_t clilen;
-     char buffer[256];
+     char buffer[BUFSIZE];
      struct sockaddr_in serv_addr, cli_addr;
      int n;
      sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -79,11 +80,20 @@ int main(int argc, char * argv[])
      else {
           cout << "Proxy found, connected" << endl;
      }
-     bzero(buffer,256);
+     bzero(buffer,BUFSIZE);
      
+    ssize_t numbytes;
     while(1)
     {
-        n = write(newsockfd,"1. Deposit\n2. Check Balance\n3. Quit\n",terminal.size());
+        numbytes = recv(newsockfd, buffer, BUFSIZE, 0);
+        string msg = buffer;
+        cout << msg << endl;
+        bzero(buffer, BUFSIZE);
+
+        string resp = "ACK";
+        numbytes = send(newsockfd, resp.c_str(), strlen(resp.c_str())+1, 0);
+
+        /*n = write(newsockfd,"1. Deposit\n2. Check Balance\n3. Quit\n",terminal.size());
         if (n < 0) printError("ERROR writing to socket");   
         n = read(newsockfd, buffer, 1);
         if (n < 0) printError("ERROR reading from socket");
@@ -116,7 +126,7 @@ int main(int argc, char * argv[])
             close(newsockfd);
             close(sockfd);
             break;
-        }
+        }*/
     }
     return 0; 
 }
