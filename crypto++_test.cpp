@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "cryptopp/integer.h"
+#include <cryptopp/integer.h>
 #include <cryptopp/rsa.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/base64.h>
@@ -23,9 +23,9 @@ int main( int argc , char *argv[]) {
   std::string Card_name = argv[1];
   int account_num;
   
-  std::ofstream mycard;
+  std::ifstream mycard;
   mycard.open (Card_name);
-  account_num << mycard;
+  mycard >> account_num;
   mycard.close();
   
   std::cout<<"account_num: "<<account_num<<std::endl;
@@ -44,6 +44,7 @@ int main( int argc , char *argv[]) {
   CryptoPP::InvertibleRSAFunction keys;
   keys.GenerateRandomWithKeySize( rng, 384 );
 
+/*
   // Signature
   CryptoPP::RSASS< CryptoPP::PKCS1v15, CryptoPP::SHA >::Signer signer( keys );
 
@@ -68,6 +69,7 @@ int main( int argc , char *argv[]) {
   
   if( NULL != signature ) { delete[] signature; }
   
+*/
   //********************************************************************************
   
   
@@ -123,7 +125,7 @@ int main( int argc , char *argv[]) {
   //********************************************************************************
   */
   
-  rsa_ende();
+  //rsa_ende();
   
 
   return 0;
