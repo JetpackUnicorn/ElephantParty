@@ -148,6 +148,15 @@ void logout() {
 	loggedIn = false;
 }
 
+
+void mainmenu(){
+  
+  cout<<"Command Option:\n"<<"login\n"<<"balance\n"<<"withdraw\n"<<"transfer\n"<<"logout\n\r";
+  
+}
+
+
+
 int main(int argc , char *argv[])
 {
 	if( argc != 2 ) {
@@ -165,14 +174,23 @@ int main(int argc , char *argv[])
 
 	string command;
 	while(true) {
+    
+    mainmenu();
 		cout << "ATM $";
 		cin >> command;
-
+    
 		if(command == "login") login(portNum);
 		else if(command == "balance") balance();
 		else if(command == "withdraw") withdraw();
 		else if(command == "transfer") transfer();
-		else if(command == "logout") logout();
+    else if(command == "logout")
+    {
+      logout();
+      cout<<"lose connection to ATM\n\r";
+      break;
+    }
+    else mainmenu();
+      
 	}
 
 
