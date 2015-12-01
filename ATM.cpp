@@ -159,7 +159,7 @@ int main(int argc , char *argv[])
 	string data, encryptedData;
 
 	Namecard alice;
-    	alice.readAcard("Alice.card");
+    	alice.readAcard("Alice2.card");
 	cout<<"test - alice card number : "<<alice.getCardNum()<<endl;
     	cout<<"test - alice card name : "<<alice.getCardName()<<endl;
 
