@@ -15,7 +15,7 @@
 #include <vector>
 #include <iomanip>
 
-#include "Bank.h"
+#include "bank.h"
 
 using namespace std;
 static const int BUFSIZE = 512;
