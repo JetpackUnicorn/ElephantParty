@@ -11,10 +11,11 @@
 #include <unistd.h> //close
 #include <cstdlib> //exit
 #include <pthread.h>
-#include "bank.h"
 #include <sstream>
 #include <vector>
 #include <iomanip>
+
+#include "Bank.h"
 
 using namespace std;
 static const int BUFSIZE = 512;
@@ -31,6 +32,13 @@ vector <string> splitStringByWhitespace(string inString, int limit)
         tokens.push_back(buffer);
     }
     return tokens;
+}
+
+string formatAmount(float amt)
+{
+    stringstream ss;
+    ss << fixed << setprecision(2) << amt;
+    return ss.str();
 }
 
 void * cmdShellThreadRoutine(void * arg)
@@ -55,7 +63,7 @@ void * cmdShellThreadRoutine(void * arg)
         else if (tokens[0] == "balance")
         {
             float amount = bank.checkBalance(tokens[1]);
-            if (amount >= 0) { cout << "$" << fixed << setprecision(2) << amount << "\n"; }
+            if (amount >= 0) { cout << "$" << formatAmount(amount) << "\n"; }
             else if (amount < 0) { cerr << "Error on check balance.\n"; }
         }
         else { cout << "Error: invalid command.\n"; }
@@ -76,22 +84,21 @@ void * cliThreadRoutine(void * arg)
         bzero(buffer, BUFSIZE);
         vector <string> tokens = splitStringByWhitespace(msg, 3);
         if (tokens.size() == 0) { continue; }
-        resp = "SUCCESS";
+        resp = "FAILURE";
         if (tokens[0] == "balance")
         {
             float success = bank.checkBalance(tokens[1]);
-            if (success >= 0.0) { resp = to_string(success); }
-            else { resp = "FAILURE"; }
+            if (success >= 0.0) { resp = "Your balance is $"+formatAmount(success)+"."; }
         }
         else if (tokens[0] == "withdraw")
         {
             float success = bank.withdraw(tokens[1], stof(tokens[2]));
-            if (success == false) { resp = "FAILURE"; }
+            if (success == true) { resp = "$"+formatAmount(stof(tokens[2]))+" withdrawn."; }
         }
         else if (tokens[0] == "transfer")
         {
             float success = bank.transfer(tokens[1], stof(tokens[2]), tokens[3]);
-            if (success == false) { resp = "FAILURE"; }
+            if (success == true) { resp = "$"+formatAmount(stof(tokens[2]))+" transferred to "+tokens[3]+"."; }
         }
         else { resp = "FAILURE"; }
         numbytes = send(*socket, resp.c_str(), strlen(resp.c_str())+1, 0);

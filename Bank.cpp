@@ -1,6 +1,7 @@
 #include <map>
 #include <string>
-#include "bank.h"
+
+#include "Bank.h"
 
 using namespace std;
 

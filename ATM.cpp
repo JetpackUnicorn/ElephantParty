@@ -65,7 +65,7 @@ void balance() {
 	}
 	
 	sstm.str("");
-	sstm << currentUser << " BALANCE";
+	sstm << "balance " << currentUser;
 	string msg = sstm.str();
 	if( !encryptAndSend(msg) ) {
 		cerr << "ERROR: Could not contact server" << endl;
@@ -90,7 +90,7 @@ void withdraw() {
 	// funds check
 
 	sstm.str("");
-	sstm << currentUser << " WITHDRAW " << amt;
+	sstm << "withdraw " << currentUser << " " << amt;
 	string msg = sstm.str();
 	if( !encryptAndSend(msg) ) {
 		cerr << "ERROR: Could not contact server" << endl;
@@ -122,7 +122,7 @@ void transfer() {
 	// funds check
 
 	sstm.str("");
-	sstm << currentUser << " TRANSFER " << amt << " " << recAcct;
+	sstm << "transfer " << currentUser << " " << amt << " " << recAcct;
 	string msg = sstm.str();
 	if( !encryptAndSend(msg) ) {
 		cerr << "ERROR: Could not contact server" << endl;
