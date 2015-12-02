@@ -4,7 +4,7 @@ CXXFLAGS=-c -std=c++11 -Wall
 all: atm proxy bank
 
 atm: atm.o tcp_client.o
-	$(CXX) atm.o tcp_client.o -o atm
+	$(CXX) atm.o tcp_client.o -o atm -lcrypto++
 
 proxy: proxy.o tcp_client.o
 	$(CXX) proxy.o tcp_client.o -o proxy
