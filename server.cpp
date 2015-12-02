@@ -25,9 +25,9 @@
 #include "bank.h"
 
 using namespace std;
-static const int BUFSIZE = 512;
 
-int numThreads;
+static const int BUFSIZE = 512;
+int NUMTHREADS;
 Bank bank;
 map< long long int, int > acctpins;
 
@@ -127,7 +127,7 @@ void * cliThreadRoutine(void * arg)
         numbytes = send(*socket, resp.c_str(), strlen(resp.c_str())+1, 0);
         if (numbytes == -1) { break; }
     }
-    numThreads--;
+    NUMTHREADS--;
 }
 
 /*int generatePin(long long int acctnum) {
@@ -239,9 +239,9 @@ int main(int argc, char * argv[])
         socklen_t cliLen = sizeof(cliAddr);
         int cliSock = accept(sockfd, (struct  sockaddr *) &cliAddr, &cliLen);
         if (cliSock < 0) { continue; }
-        if (numThreads < 1)
+        if (NUMTHREADS < 1)
         {
-            numThreads++;
+            NUMTHREADS++;
             pthread_t cliThread;
             pthread_create(&cliThread, NULL, cliThreadRoutine, (void*)(&cliSock));
         }
