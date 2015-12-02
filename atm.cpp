@@ -55,7 +55,9 @@ string currentUser;
 tcp_client c;
 stringstream sstm;
 
-
+string ATM_pubkey;
+string ATM_privkey;
+string bank_pubkey;
 
 string RSA_Encryption(const string & plain){
   //Encryption
@@ -181,14 +183,14 @@ void SharedKey_Init(){
   
   // With the current version of Crypto++, MessageEnd() needs to be called
   // explicitly because Base64Encoder doesn't flush its buffer on destruction.
-  Base64Encoder privkeysink(new FileSink("privkey.txt"));
+  Base64Encoder privkeysink(new StringSink(ATM_privkey));
   privkey.DEREncode(privkeysink);
   privkeysink.MessageEnd();
   
   // Suppose we want to store the public key separately,
   // possibly because we will be sending the public key to a third party.
   RSAFunction pubkey(privkey);
-  Base64Encoder pubkeysink(new FileSink("pubkey.txt"));
+  Base64Encoder pubkeysink(new StringSink(ATM_pubkey));
   pubkey.DEREncode(pubkeysink);
   pubkeysink.MessageEnd();
   
@@ -198,21 +200,25 @@ void SharedKey_Init(){
 bool encryptAndSend(string msg) {
 	
   // encryption
-  string encrypted_msg = RSA_Encryption(msg);
+  /*string encrypted_msg = RSA_Encryption(msg);
   // sign
   string signed_msg = signature_sign(encrypted_msg);
   
-	return c.send_data(signed_msg);
+	return c.send_data(signed_msg);*/
+
+	return c.send_data(msg);
 }
 
 string receiveAndDecrypt() {
 
 	string resp = c.receive(512);
   // verify
-  string verified_msg = signature_verify(resp);
+  /*string verified_msg = signature_verify(resp);
 	// decryption
   string decrypted_msg = RSA_Decryption(verified_msg);
-	return decrypted_msg;
+	return decrypted_msg;*/
+
+	return resp;
 }
 
 bool login() {
@@ -382,6 +388,11 @@ int main(int argc , char *argv[])
 		return 0;
 	} else {
 		cout << "Connected." << endl;
+	}
+
+	//Send public key to bank
+	if( !c.send_data("atmkey "+ATM_pubkey)) {
+		cout << "ERROR sending public key" << endl;
 	}
 
 	string command;

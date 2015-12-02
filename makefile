@@ -4,13 +4,13 @@ CXXFLAGS=-c -std=c++11 -Wall
 all: atm proxy bank
 
 atm: atm.o tcp_client.o
-	$(CXX) atm.o tcp_client.o -o atm -lcrypto++
+	$(CXX) atm.o tcp_client.o -o atm -lcryptopp
 
 proxy: proxy.o tcp_client.o
 	$(CXX) proxy.o tcp_client.o -o proxy
 
 bank: bank.o server.o
-	$(CXX) -pthread bank.o server.o -o bank -lcrypto++
+	$(CXX) -pthread bank.o server.o -o bank -lcryptopp
 
 atm.o: atm.cpp
 	$(CXX) $(CXXFLAGS) atm.cpp
