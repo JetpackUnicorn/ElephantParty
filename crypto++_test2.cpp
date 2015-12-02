@@ -78,19 +78,16 @@ void PrintPublicKey(const RSA::PublicKey& key)
   cout << "e: " << key.GetPublicExponent() << endl;
 }
 
-void signature_sign(const string & pbkey_file, const string & account_num, string & signature){
-  
-  // Generate keys
-  AutoSeededRandomPool rng;
-  
-  InvertibleRSAFunction parameters;
-  parameters.GenerateRandomWithKeySize(rng, 1536);
-  
-  RSA::PrivateKey privateKey(parameters);
-  RSA::PublicKey publicKey(parameters);
+void signature_sign(const string & account_num, const string & pvkey_file, string & signature){
   
   // Setup
   string message = account_num;
+  RSA::PrivateKey privateKey;
+  AutoSeededRandomPool rng;
+  
+  // Load key
+  LoadKey(pvkey_file, privateKey);
+  
   
   // Sign and Encode
   RSASS<PSSR, SHA1>::Signer signer(privateKey);
@@ -105,24 +102,28 @@ void signature_sign(const string & pbkey_file, const string & account_num, strin
   
   
   // Save Public Key
-  SaveKey( publicKey, pbkey_file);
-  PrintPublicKey(publicKey);    //check
+  //string pbkey_file = "Eve_pbkey.DER";
+  //SaveKey( publicKey, pbkey_file);
+  
+  // Save Private Key
+  //string pvkey_file = "Eve_pvkey.DER";
+  //SaveKey(privateKey, pvkey_file);
   
   /*
-   // Save signature
-   std::ofstream atmbank_sign;
-   atmbank_sign.open ("Signature.sign");
-   atmbank_sign << signature;
+  // Save signature
+  std::ofstream atmbank_sign;
+  atmbank_sign.open ("Signature.sign");
+  atmbank_sign << signature;
+  
+  cout<< "signature send :" << signature<<endl;
+  atmbank_sign.close();
    
-   cout<< "signature send :" << signature<<endl;
-   atmbank_sign.close();
-   
-   */
+  */
 }
 
 
 
-void signature_verify(const string & pbkey_file, const string & account_num, string & signature){
+void signature_verify(const string & account_num, const string & pbkey_file, const string & signature){
   
   RSA::PublicKey publicKey;
   string recovered, message;
@@ -130,12 +131,12 @@ void signature_verify(const string & pbkey_file, const string & account_num, str
   LoadKey(pbkey_file, publicKey);
   
   /*
-   // Load signature
-   std::ifstream atmbank_sign ("Signature.sign");
-   atmbank_sign >> signature;
-   atmbank_sign.close();
-   
-   cout<< "signature receive :" << signature<<endl;
+  // Load signature
+  std::ifstream atmbank_sign ("Signature.sign");
+  atmbank_sign >> signature;
+  atmbank_sign.close();
+  
+  cout<< "signature receive :" << signature<<endl;
    */
   
   
@@ -154,7 +155,7 @@ void signature_verify(const string & pbkey_file, const string & account_num, str
   assert(account_num == recovered);
   cout << "Verified signature on message" << endl;
   cout << "Message: " << "'" << recovered << "'" << endl;
-  
+
 }
 
 
@@ -162,33 +163,55 @@ void signature_verify(const string & pbkey_file, const string & account_num, str
 
 int main( int argc , char *argv[]) {
   
-  if( argc != 2 ) {
-    std::cerr << "Usage: atm <card>" << std::endl;
+  string PrivateKey_DER;
+  string PublicKey_DER;
+  
+  if( argc != 5) {
+    std::cerr << "Usage1: <bank> <card> <public key> <verify>" << std::endl;
+    std::cerr << "Usage2: <atm> <card> <private key> <sign>" << std::endl;
     exit(1);
   }
+  if(argv[4] == "verify") {
+    
+    PublicKey_DER = argv[2];
+    
+  }
+  else if (argv[4] == "sign"){
+    PrivateKey_DER = argv[2];
+  }
   
-  std::string Card_name = argv[1];
-  string account_num, account_name;
-
+  string Card_file = argv[1], account_num;
+  
+  
   std::ifstream mycard;
-  mycard.open (Card_name);
+  mycard.open (Card_file);
   mycard >> account_num;
-  mycard >> account_name;
   mycard.close();
   
   std::cout<<"account_num: "<<account_num<<std::endl;
-  std::cout<<"account_name: "<<account_name<<std::endl;
   
+  string signature;   // need to be transfered through proxy
   
-  string signature;
-  string pbkey_DER = account_name + "_pbkey.DER";
-  
-  signature_sign(pbkey_DER, account_num, signature);
-  signature_verify(pbkey_DER, account_num, signature);
+  signature_sign(account_num, PrivateKey_DER, signature);
+  signature_verify(account_num, PublicKey_DER, signature);
   //********************************************************************************
   
 }
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
