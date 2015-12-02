@@ -36,40 +36,50 @@ using std::cerr;
 #include <exception>
 using std::exception;
 #include <assert.h>
+#include <cryptopp/queue.h>
+using CryptoPP::ByteQueue;
 
 
 
-void SaveKey(const RSA::PublicKey& PublicKey, const string& filename)
+
+
+
+/*
+void SavePublicKey(const string& filename, const RSA::PublicKey& key)
 {
-  // DER Encode Key - X.509 key format
-  PublicKey.Save(
-                 FileSink(filename.c_str(), true /*binary*/).Ref()
-                 );
+  ByteQueue queue;
+  key.Save(queue);
+  
+  Save(filename, queue);
 }
 
-void SaveKey(const RSA::PrivateKey& PrivateKey, const string& filename)
+void SavePrivateKey(const string& filename, const RSA::PrivateKey& key)
 {
-  // DER Encode Key - PKCS #8 key format
-  PrivateKey.Save(
-                  FileSink(filename.c_str(), true /*binary*/).Ref()
-                  );
+  ByteQueue queue;
+  key.Save(queue);
+  
+  Save(filename, queue);
 }
 
-void LoadKey(const string& filename, RSA::PublicKey& PublicKey)
+
+void LoadPublicKey(const string& filename, RSA::PublicKey& key)
 {
-  // DER Encode Key - X.509 key format
-  PublicKey.Load(
-                 FileSource(filename.c_str(), true, NULL, true /*binary*/).Ref()
-                 );
+  ByteQueue queue;
+  Load(filename, queue);
+  
+  key.Load(queue);
 }
 
-void LoadKey(const string& filename, RSA::PrivateKey& PrivateKey)
+void LoadPrivateKey(const string& filename, RSA::PrivateKey& key)
 {
-  // DER Encode Key - PKCS #8 key format
-  PrivateKey.Load(
-                  FileSource(filename.c_str(), true, NULL, true /*binary*/).Ref()
-                  );
+  ByteQueue queue;
+  Load(filename, queue);
+  
+  key.Load(queue);
 }
+*/
+ 
+/*
 
 void PrintPrivateKey(const RSA::PrivateKey& key)
 {
@@ -87,84 +97,88 @@ void PrintPublicKey(const RSA::PublicKey& key)
   cout << "n: " << key.GetModulus() << endl;
   cout << "e: " << key.GetPublicExponent() << endl;
 }
+*/
 
- //********************************************************************************
+//********************************************************************************
 
-void rsa_encrypt(){
+void RSA_Encryption(SecByteBlock & sbbCipherText){
+  //Encryption
   
-  // Generate keys
+  //Load public key
+  RSAES_OAEP_SHA_Encryptor pubkey(FileSource("pubkey.txt", true, new Base64Decoder)));
+  
+  
   AutoSeededRandomPool rng;
+  pubkey.Encrypt(
+                 rng,
+                 (byte const*) strShortString.data(),
+                 strShortString.size(),
+                 sbbCipherText.Begin());
   
-  InvertibleRSAFunction parameters;
-  parameters.GenerateRandomWithKeySize( rng, 1024 );
-  
-  RSA::PrivateKey privateKey( parameters );
-  RSA::PublicKey publicKey( parameters );
-  
-  string plain="RSA Encryption", cipher, recovered;
- 
-  // Encryption
-  RSAES_OAEP_SHA_Encryptor e( publicKey );
-  
-  StringSource( plain, true,
-               new PK_EncryptorFilter( rng, e,
-                                      new StringSink( cipher )
-                                      ) // PK_EncryptorFilter
-               );
-  
-  
+  //FileSink("encrypted.dat").Put(sbbCipherText.Begin(), sbbCipherText.Size());
+
 }
 
+//********************************************************************************
 
+void RSA_Decryption(const SecByteBlock & sbbCipherText){
+  //Decryption
+  
+  //Load private key
+  RSAES_OAEP_SHA_Decryptor privkey(FileSource("privkey.txt", true, new Base64Decoder)));
+  
+  std::string plaintext;
+  
 
-void rsa_decrypt(){
-  
-  // Decryption
-  RSAES_OAEP_SHA_Decryptor d( privateKey );
-  
-  StringSource( cipher, true,
-               new PK_DecryptorFilter( rng, d,
-                                      new StringSink( recovered )
-                                      ) // PK_EncryptorFilter
-               ); // StringSource
-  
-  assert( plain == recovered );
+  AutoSeededRandomPool rng;
+  /*
+  privkey.Decrypt(
+                 rng,
+                 (byte const*) sbbCipherText.data(),
+                 sbbCipherText.size(),
+                 sbbCipherText.Begin());
+   */
 }
-
-
-
-
 
 
 
  //********************************************************************************
 
 int main( int argc , char *argv[]) {
-  
-  if( argc != 2 ) {
-    std::cerr << "Usage: atm <card>" << std::endl;
-    exit(1);
-  }
-  
-  std::string Card_name = argv[1];
-  string account_num, account_name;
 
-  std::ifstream mycard;
-  mycard.open (Card_name);
-  mycard >> account_num;
-  mycard >> account_name;
-  mycard.close();
+  /*
+  Integer n("0xbeaadb3d839f3b5f"), e("0x11"), d("0x21a5ae37b9959db9");
   
-  std::cout<<"account_num: "<<account_num<<std::endl;
-  std::cout<<"account_name: "<<account_name<<std::endl;
+  RSA::PublicKey pubKey;
+  pubKey.Initialize(n, e);
+  */
+   
   
+  // Generate the keypair every time the server starts
+  AutoSeededRandomPool rng;
+  InvertibleRSAFunction privkey;
+  privkey.Initialize(rng, 1024);
   
-  string signature;
-  string pbkey_DER = account_name + "_pbkey.DER";
+  // With the current version of Crypto++, MessageEnd() needs to be called
+  // explicitly because Base64Encoder doesn't flush its buffer on destruction.
+  Base64Encoder privkeysink(new FileSink("privkey.txt"));
+  privkey.DEREncode(privkeysink);
+  privkeysink.MessageEnd();
   
-  signature_sign(pbkey_DER, account_num, signature);
-  signature_verify(pbkey_DER, account_num, signature);
+  // Suppose we want to store the public key separately,
+  // possibly because we will be sending the public key to a third party.
+  RSAFunction pubkey(privkey);
+  
+  Base64Encoder pubkeysink(new FileSink("pubkey.txt"));
+  pubkey.DEREncode(pubkeysink);
+  pubkeysink.MessageEnd();
  
+  
+  string strShortString =
+  "Alice: Withdraw balance 50";
+  // Cannot use std::string for buffer;
+  // its internal storage might not be contiguous
+  SecByteBlock sbbCipherText(pubkey.CipherTextLength(strShortString.size()));
   
 }
 
