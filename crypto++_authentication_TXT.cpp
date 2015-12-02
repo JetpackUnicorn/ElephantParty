@@ -106,36 +106,6 @@ void signature_sign(const string & account_num, string & signature){
                                 ) // SignerFilter
                );
   
-  /*
-  string strContents = "A message to be signed";
-  //FileSource("tobesigned.dat", true, new StringSink(strContents));
-  
-  AutoSeededRandomPool rng;
-  
-  //Read private key
-  CryptoPP::ByteQueue bytes;
-  FileSource file("privkey.txt", true, new Base64Decoder);
-  file.TransferTo(bytes);
-  bytes.MessageEnd();
-  RSA::PrivateKey privateKey;
-  privateKey.Load(bytes);
-  
-  //Sign message
-  RSASSA_PKCS1v15_SHA_Signer privkey(privateKey);
-  SecByteBlock sbbSignature(privkey.SignatureLength());
-  privkey.SignMessage(
-                      rng,
-                      (byte const*) strContents.data(),
-                      strContents.size(),
-                      sbbSignature);
-  
-  //Save result
-  FileSink sink("signed.dat");
-  sink.Put((byte const*) strContents.data(), strContents.size());
-  FileSink sinksig("sig.dat");
-  sinksig.Put(sbbSignature, sbbSignature.size());
-   
-  */
 }
 
 
