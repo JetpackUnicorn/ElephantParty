@@ -78,7 +78,7 @@ void PrintPublicKey(const RSA::PublicKey& key)
   cout << "e: " << key.GetPublicExponent() << endl;
 }
 
-void signature_sign(const string account_num){
+void signature_sign(const string & account_num, string & signature){
   
   // Generate keys
   AutoSeededRandomPool rng;
@@ -90,7 +90,7 @@ void signature_sign(const string account_num){
   RSA::PublicKey publicKey(parameters);
   
   // Setup
-  string message = account_num, signature, recovered;
+  string message = account_num;
   
   // Sign and Encode
   RSASS<PSSR, SHA1>::Signer signer(privateKey);
@@ -110,26 +110,35 @@ void signature_sign(const string account_num){
   SaveKey( publicKey, pbkey_file);
   PrintPublicKey(publicKey);    //check
   
+  /*
   // Save signature
   std::ofstream atmbank_sign;
   atmbank_sign.open ("Signature.sign");
   atmbank_sign << signature;
+  
+  cout<< "signature send :" << signature<<endl;
   atmbank_sign.close();
+   
+  */
 }
 
 
 
-void signature_verify(const string pbkey_file){
+void signature_verify(const string & pbkey_file, const string & account_num, string & signature){
   
-  
+  RSA::PublicKey publicKey;
+  string recovered, message;
   // Load key
   LoadKey(pbkey_file, publicKey);
   
-  
+  /*
   // Load signature
   std::ifstream atmbank_sign ("Signature.sign");
   atmbank_sign >> signature;
   atmbank_sign.close();
+  
+  cout<< "signature receive :" << signature<<endl;
+   */
   
   
   // Verify and Recover
@@ -144,7 +153,7 @@ void signature_verify(const string pbkey_file){
                                                ) // SignatureVerificationFilter
                ); // StringSource
   
-  assert(message == recovered);
+  assert(account_num == recovered);
   cout << "Verified signature on message" << endl;
   cout << "Message: " << "'" << recovered << "'" << endl;
 
@@ -161,7 +170,7 @@ int main( int argc , char *argv[]) {
   }
   
   std::string Card_name = argv[1];
-  int account_num;
+  string account_num;
   
   std::ifstream mycard;
   mycard.open (Card_name);
@@ -170,8 +179,10 @@ int main( int argc , char *argv[]) {
   
   std::cout<<"account_num: "<<account_num<<std::endl;
   
-  signature_sign(account_num);
-  signature_verify("authenticaton_pbkey.DER");
+  string signature;
+  
+  signature_sign(account_num, signature);
+  signature_verify("authenticaton_pbkey.DER", account_num, signature);
   //********************************************************************************
   
 }
