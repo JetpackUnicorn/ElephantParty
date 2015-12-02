@@ -36,16 +36,16 @@ string receiveAndDecrypt() {
 	return decrypted_msg;
 }
 
-void login(int portNum) {
+bool login() {
 	if(loggedIn) {
 		cout << "Already logged in" << endl;
-		return;
+		return false;
 	}
 	string username;
 	cin >> username;
 	if(username == "") {
 		cout << "No username entered" << endl;
-		return;
+		return false;
 	}
 
 	int pinNum;
@@ -53,10 +53,10 @@ void login(int portNum) {
 	cin >> pinNum;
 
 	// Authentication
-
-	c.conn("localhost", portNum);
+	
 	loggedIn = true;
 	currentUser = username;
+	return true;
 }
 
 void balance() {
@@ -151,7 +151,7 @@ void logout() {
 
 void mainmenu(){
   
-  cout<<"Command Option:\n"<<"login\n"<<"balance\n"<<"withdraw\n"<<"transfer\n"<<"logout\n\r";
+  cout<<"\nCommand Options:\n"<<"* login <username>\n"<<"* balance\n"<<"* withdraw <amount>\n"<<"* transfer <amount> <recipient>\n"<<"* logout\n\r";
   
 }
 
@@ -172,24 +172,37 @@ int main(int argc , char *argv[])
 	cout<<"test - alice card number : "<<alice.getCardNum()<<endl;
     	cout<<"test - alice card name : "<<alice.getCardName()<<endl;
 
+    cout << "Connecting to bank..." << endl;
+    if( !c.conn("localhost", portNum) ) {
+		cout << "Could not establish connection to bank. Terminating session." << endl;
+		return 0;
+	} else {
+		cout << "Connected. Welcome" << endl;
+	}
+
 	string command;
 	while(true) {
     
-    mainmenu();
-		cout << "ATM $";
+    	mainmenu();
+		cout << "\nATM $";
 		cin >> command;
     
-		if(command == "login") login(portNum);
+		if(command == "login") {
+			if( !login() ) {
+				cout << "Login failed. Terminating session." << endl;
+				return 0;
+			}
+		}
 		else if(command == "balance") balance();
 		else if(command == "withdraw") withdraw();
 		else if(command == "transfer") transfer();
-    else if(command == "logout")
-    {
-      logout();
-      cout<<"lose connection to ATM\n\r";
-      break;
-    }
-    else mainmenu();
+	    else if(command == "logout")
+	    {
+	      logout();
+	      cout<<"lose connection to ATM\n\r";
+	      break;
+	    }
+	    //else mainmenu();
       
 	}
 
