@@ -80,7 +80,7 @@ bool tcp_client::conn(string address , int port)
     if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0)
     {
         perror("connect failed. Error");
-        return 1;
+        return false;
     }
      
     cout<<"Connected\n";

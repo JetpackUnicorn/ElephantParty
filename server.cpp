@@ -14,6 +14,8 @@
 #include <sstream>
 #include <vector>
 #include <iomanip>
+#include <fstream>
+#include <time.h>
 
 #include "bank.h"
 
@@ -106,6 +108,26 @@ void * cliThreadRoutine(void * arg)
     }
 }
 
+void initializeCards() {
+
+    string names[3] = {"Alice", "Bob", "Eve"};
+    srand( time(NULL) );
+
+    ifstream instr;
+    for(int i=0; i<3; ++i) {
+        instr.open(names[i]+".card");
+        if(!instr.good()) {
+            ofstream ostr;
+            ostr.open(names[i]+".card");
+            int numL = rand() % 90000000 + 10000000;
+            int numR = rand() % 90000000 + 10000000;
+            ostr << numL << numR << "\n\r" << names[i];
+            ostr.close();
+        }
+        instr.close();
+    }
+}
+
 int main(int argc, char * argv[])
 {
     if (argc != 2) 
@@ -113,6 +135,9 @@ int main(int argc, char * argv[])
         cerr << "Usage: bank <port>\n";
         exit(1);
     }
+    
+    initializeCards();
+
     int sockfd, newsockfd, portno;
     sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     sockaddr_in addr_l;
