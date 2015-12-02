@@ -25,15 +25,10 @@
 #include "bank.h"
 
 using namespace std;
-<<<<<<< HEAD
 
 static const int BUFSIZE = 512;
 int NUMTHREADS;
-=======
-static const int BUFSIZE = 512;
-
->>>>>>> parent of 29f7de5... Updated server.cpp
-Bank bank;
+Bank BANK;
 map< long long int, int > acctpins;
 
 //int generatePin(long long int acctnum);
@@ -79,13 +74,13 @@ void * cmdShellThreadRoutine(void * arg)
         if (tokens[0] == "deposit")
         {
             bool success;
-            try { success = bank.deposit(tokens[1], stof(tokens[2])); }
+            try { success = BANK.deposit(tokens[1], stof(tokens[2])); }
             catch(const invalid_argument& ia) { success = false; }
             if (success == false) { cerr << "Error on deposit.\n"; }
         }
         else if (tokens[0] == "balance")
         {
-            float amount = bank.checkBalance(tokens[1]);
+            float amount = BANK.checkBalance(tokens[1]);
             if (amount >= 0) { cout << "$" << formatAmount(amount) << "\n"; }
             else if (amount < 0) { cerr << "Error on check balance.\n"; }
         }
@@ -110,17 +105,17 @@ void * cliThreadRoutine(void * arg)
         resp = "FAILURE";
         if (tokens[0] == "balance")
         {
-            float success = bank.checkBalance(tokens[1]);
+            float success = BANK.checkBalance(tokens[1]);
             if (success >= 0.0) { resp = "Your balance is $"+formatAmount(success)+"."; }
         }
         else if (tokens[0] == "withdraw")
         {
-            float success = bank.withdraw(tokens[1], stof(tokens[2]));
+            float success = BANK.withdraw(tokens[1], stof(tokens[2]));
             if (success == true) { resp = "$"+formatAmount(stof(tokens[2]))+" withdrawn."; }
         }
         else if (tokens[0] == "transfer")
         {
-            float success = bank.transfer(tokens[1], stof(tokens[2]), tokens[3]);
+            float success = BANK.transfer(tokens[1], stof(tokens[2]), tokens[3]);
             if (success == true) { resp = "$"+formatAmount(stof(tokens[2]))+" transferred to "+tokens[3]+"."; }
         }
         else if (tokens[0] == "authenticate")
@@ -132,10 +127,7 @@ void * cliThreadRoutine(void * arg)
         numbytes = send(*socket, resp.c_str(), strlen(resp.c_str())+1, 0);
         if (numbytes == -1) { break; }
     }
-<<<<<<< HEAD
     NUMTHREADS--;
-=======
->>>>>>> parent of 29f7de5... Updated server.cpp
 }
 
 /*int generatePin(long long int acctnum) {
@@ -247,13 +239,9 @@ int main(int argc, char * argv[])
         socklen_t cliLen = sizeof(cliAddr);
         int cliSock = accept(sockfd, (struct  sockaddr *) &cliAddr, &cliLen);
         if (cliSock < 0) { continue; }
-<<<<<<< HEAD
         if (NUMTHREADS < 1)
-=======
-        if (numThreads < 10)
->>>>>>> parent of 29f7de5... Updated server.cpp
         {
-            numThreads++;
+            NUMTHREADS++;
             pthread_t cliThread;
             pthread_create(&cliThread, NULL, cliThreadRoutine, (void*)(&cliSock));
         }
