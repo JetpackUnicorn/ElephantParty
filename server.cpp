@@ -18,9 +18,38 @@
 #include <time.h>
 #include <map>
 
-#include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
+#include <cryptopp/base64.h>
+using CryptoPP::Base64Encoder;
+using CryptoPP::Base64Decoder;
+#include <cryptopp/modes.h>
+#include <cryptopp/integer.h>
+using CryptoPP::Integer;
+#include <cryptopp/files.h>
+using CryptoPP::FileSink;
+using CryptoPP::FileSource;
+#include <cryptopp/osrng.h>
+using CryptoPP::AutoSeededRandomPool;
+#include <cryptopp/pssr.h>
+using CryptoPP::PSSR;
+#include <cryptopp/rsa.h>
+using CryptoPP::InvertibleRSAFunction;
+using CryptoPP::RSASS;
+using CryptoPP::RSA;
+using CryptoPP::RSAFunction;
+using CryptoPP::RSAES_OAEP_SHA_Encryptor;
+using CryptoPP::RSAES_OAEP_SHA_Decryptor;
+using CryptoPP::PK_EncryptorFilter;
+using CryptoPP::PK_DecryptorFilter;
 #include <cryptopp/filters.h>
+using CryptoPP::SignerFilter;
+using CryptoPP::SignatureVerificationFilter;
+using CryptoPP::StringSink;
+using CryptoPP::StringSource;
+#include <cryptopp/cryptlib.h>
+using CryptoPP::Exception;
+#include <cryptopp/sha.h>
+using CryptoPP::SHA1;
 
 #include "bank.h"
 
@@ -59,6 +88,144 @@ bool authenticate( long long int acctnum, int pin ) {
     return (acctpins[acctnum] == pin);
 }
 
+
+string RSA_Encryption(const string & plain){
+  //Encryption
+  AutoSeededRandomPool rng;
+  
+  //Load public key
+  CryptoPP::RSA::PublicKey pubKey;
+  CryptoPP::ByteQueue bytes;
+  FileSource file("pubkey_atm.txt", true, new Base64Decoder);
+  file.TransferTo(bytes);
+  bytes.MessageEnd();
+  pubKey.Load(bytes);
+  
+  
+  RSAES_OAEP_SHA_Encryptor e(pubKey);
+  
+  string cipher;
+  StringSource ss1(plain, true,
+                   new PK_EncryptorFilter(rng, e,
+                                          new StringSink(cipher)
+                                          ) // PK_EncryptorFilter
+                   ); // StringSource
+  return cipher;
+}
+
+//********************************************************************************
+
+string RSA_Decryption(const string & cipher){
+  //Decryption
+  AutoSeededRandomPool rng;
+  //Load private key
+  CryptoPP::RSA::PrivateKey privKey;
+  // Load private key
+  CryptoPP::ByteQueue bytes;
+  FileSource file("privkey_bank.txt", true, new Base64Decoder);
+  file.TransferTo(bytes);
+  bytes.MessageEnd();
+  privKey.Load(bytes);
+  
+  string recovered;
+  
+  RSAES_OAEP_SHA_Decryptor d(privKey);
+  
+  StringSource ss2(cipher, true,
+                   new PK_DecryptorFilter(rng, d,
+                                          new StringSink(recovered)
+                                          ) // PK_DecryptorFilter
+                   ); // StringSource
+  
+  //assert (plain == recovered);
+  std::cout << "decrypted plain: " << recovered << std::endl;
+  return recovered;
+}
+
+//signature
+string signature_sign(const string & msg){
+  
+  // Setup
+  string message = msg;
+  cout << "unsigned message: "<< msg <<endl;
+  RSA::PrivateKey privateKey;
+  AutoSeededRandomPool rng;
+  
+  // Load private key
+  CryptoPP::ByteQueue bytes;
+  FileSource file("privkey_bank.txt", true, new Base64Decoder);
+  file.TransferTo(bytes);
+  bytes.MessageEnd();
+  privateKey.Load(bytes);
+  
+  // Sign and Encode
+  RSASS<PSSR, SHA1>::Signer signer(privateKey);
+  
+  string signature;
+  // StringSource
+  StringSource(message, true,
+               new SignerFilter(rng, signer,
+                                new StringSink(signature),
+                                true // putMessage
+                                ) // SignerFilter
+               );
+  return signature;
+}
+
+string signature_verify(const string & signature){
+  
+  RSA::PublicKey publicKey;
+  string recovered, message;
+  
+  // Load public key
+  CryptoPP::ByteQueue bytes;
+  FileSource file("pubkey_atm.txt", true, new Base64Decoder);
+  file.TransferTo(bytes);
+  bytes.MessageEnd();
+  publicKey.Load(bytes);
+  
+  // Verify and Recover
+  RSASS<PSSR, SHA1>::Verifier verifier(publicKey);
+  
+  StringSource(signature, true,
+               new SignatureVerificationFilter(
+                                               verifier,
+                                               new StringSink(recovered),
+                                               SignatureVerificationFilter::THROW_EXCEPTION |
+                                               SignatureVerificationFilter::PUT_MESSAGE
+                                               ) // SignatureVerificationFilter
+               ); // StringSource
+  
+  
+  cout << "Verified Message: " << "'" << recovered << "'" << endl;
+  return recovered;
+  
+}
+
+void SharedKey_Init(){
+  
+  // InvertibleRSAFunction is used directly only because the private key
+  // won't actually be used to perform any cryptographic operation;
+  // otherwise, an appropriate typedef'ed type from rsa.h would have been used.
+  AutoSeededRandomPool rng;
+  InvertibleRSAFunction privkey;
+  privkey.Initialize(rng, 1024);
+  
+  // With the current version of Crypto++, MessageEnd() needs to be called
+  // explicitly because Base64Encoder doesn't flush its buffer on destruction.
+  Base64Encoder privkeysink(new FileSink("privkey_bank.txt"));
+  privkey.DEREncode(privkeysink);
+  privkeysink.MessageEnd();
+  
+  // Suppose we want to store the public key separately,
+  // possibly because we will be sending the public key to a third party.
+  RSAFunction pubkey(privkey);
+  Base64Encoder pubkeysink(new FileSink("pubkey_bank.txt"));
+  pubkey.DEREncode(pubkeysink);
+  pubkeysink.MessageEnd();
+  
+}
+
 void * cmdShellThreadRoutine(void * arg)
 {
     cout << "Welcome to the bank. Available commands:\n"
@@ -88,6 +255,7 @@ void * cmdShellThreadRoutine(void * arg)
     }
 }
 
+
 void * cliThreadRoutine(void * arg)
 {
     ssize_t numbytes;
@@ -96,11 +264,17 @@ void * cliThreadRoutine(void * arg)
     {
         int * socket = (int *) arg; 
         string resp;
-        numbytes = recv(*socket, buffer, BUFSIZE, 0);
+        numbytes = recv(*socket, buffer, BUFSIZE, 0);     // msg received
         if (numbytes == 0) { break; }
-        string msg = buffer;
+        string received_msg = buffer;
+        //decrypt message
+        // verify
+        string verified_msg = signature_verify(received_msg);
+        // decryption
+        string decrypted_msg = RSA_Decryption(verified_msg);
+    
         bzero(buffer, BUFSIZE);
-        vector <string> tokens = splitStringByWhitespace(msg, 3);
+        vector <string> tokens = splitStringByWhitespace(decrypted_msg, 3);
         if (tokens.size() == 0) { continue; }
         resp = "FAILURE";
         if (tokens[0] == "balance")
@@ -124,7 +298,13 @@ void * cliThreadRoutine(void * arg)
             if (success == true) { resp = "Authenticated."; }
         }
         else { resp = "FAILURE"; }
-        numbytes = send(*socket, resp.c_str(), strlen(resp.c_str())+1, 0);
+      
+        // encrypt resp
+        string encrypted_msg = RSA_Encryption(resp);
+        // sign
+        string signed_msg = signature_sign(encrypted_msg);
+      
+        numbytes = send(*socket, signed_msg.c_str(), strlen(signed_msg.c_str())+1, 0);
         if (numbytes == -1) { break; }
     }
     NUMTHREADS--;
@@ -201,7 +381,8 @@ int main(int argc, char * argv[])
         cerr << "Usage: bank <port>\n";
         exit(1);
     }
-
+  
+    SharedKey_Init();
     srand( time(NULL) );
 
     if(!readPins())

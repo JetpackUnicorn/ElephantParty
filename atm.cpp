@@ -66,7 +66,7 @@ string RSA_Encryption(const string & plain){
   //Load public key
   CryptoPP::RSA::PublicKey pubKey;
   CryptoPP::ByteQueue bytes;
-  FileSource file("pubkey.txt", true, new Base64Decoder);
+  FileSource file("pubkey_bank.txt", true, new Base64Decoder);
   file.TransferTo(bytes);
   bytes.MessageEnd();
   pubKey.Load(bytes);
@@ -92,7 +92,7 @@ string RSA_Decryption(const string & cipher){
   CryptoPP::RSA::PrivateKey privKey;
   // Load private key
   CryptoPP::ByteQueue bytes;
-  FileSource file("privkey.txt", true, new Base64Decoder);
+  FileSource file("privkey_atm.txt", true, new Base64Decoder);
   file.TransferTo(bytes);
   bytes.MessageEnd();
   privKey.Load(bytes);
@@ -123,7 +123,7 @@ string signature_sign(const string & msg){
   
   // Load private key
   CryptoPP::ByteQueue bytes;
-  FileSource file("privkey.txt", true, new Base64Decoder);
+  FileSource file("privkey_atm.txt", true, new Base64Decoder);
   file.TransferTo(bytes);
   bytes.MessageEnd();
   privateKey.Load(bytes);
@@ -149,7 +149,7 @@ string signature_verify(const string & signature){
   
   // Load public key
   CryptoPP::ByteQueue bytes;
-  FileSource file("pubkey.txt", true, new Base64Decoder);
+  FileSource file("pubkey_bank.txt", true, new Base64Decoder);
   file.TransferTo(bytes);
   bytes.MessageEnd();
   publicKey.Load(bytes);
@@ -183,14 +183,14 @@ void SharedKey_Init(){
   
   // With the current version of Crypto++, MessageEnd() needs to be called
   // explicitly because Base64Encoder doesn't flush its buffer on destruction.
-  Base64Encoder privkeysink(new StringSink(ATM_privkey));
+  Base64Encoder privkeysink(new FileSink("privkey_atm.txt"));
   privkey.DEREncode(privkeysink);
   privkeysink.MessageEnd();
   
   // Suppose we want to store the public key separately,
   // possibly because we will be sending the public key to a third party.
   RSAFunction pubkey(privkey);
-  Base64Encoder pubkeysink(new StringSink(ATM_pubkey));
+  Base64Encoder pubkeysink(new FileSink("pubkey_atm.txt"));
   pubkey.DEREncode(pubkeysink);
   pubkeysink.MessageEnd();
   
