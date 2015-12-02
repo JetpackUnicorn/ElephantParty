@@ -1,15 +1,15 @@
-#include <iostream>    
-#include <stdio.h>
+#include <iostream>    //cout
+#include <stdio.h> //printf
 #include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <sys/socket.h>
+#include <string.h>    //strlen
+#include <string>  //string
+#include <sys/socket.h>    //socket
 #include <sys/types.h>  
-#include <arpa/inet.h>
+#include <arpa/inet.h> //inet_addr
 #include <netinet/in.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <cstdlib>
+#include <netdb.h> //hostent
+#include <unistd.h> //close
+#include <cstdlib> //exit
 #include <pthread.h>
 #include <sstream>
 #include <vector>
@@ -26,8 +26,11 @@
 
 using namespace std;
 
+<<<<<<< HEAD
 static const int BUFSIZE = 512;
 int NUMTHREADS;
+=======
+>>>>>>> parent of 9190498... Merge branch 'MyBranch'
 Bank bank;
 map< long long int, int > acctpins;
 
@@ -127,7 +130,10 @@ void * cliThreadRoutine(void * arg)
         numbytes = send(*socket, resp.c_str(), strlen(resp.c_str())+1, 0);
         if (numbytes == -1) { break; }
     }
+<<<<<<< HEAD
     NUMTHREADS--;
+=======
+>>>>>>> parent of 9190498... Merge branch 'MyBranch'
 }
 
 /*int generatePin(long long int acctnum) {
@@ -233,13 +239,18 @@ int main(int argc, char * argv[])
     pthread_t cmdShellThread;
     pthread_create(&cmdShellThread, NULL, cmdShellThreadRoutine, NULL);
 
+    int numThreads;
     while(1)
     {
         sockaddr_in cliAddr;
         socklen_t cliLen = sizeof(cliAddr);
         int cliSock = accept(sockfd, (struct  sockaddr *) &cliAddr, &cliLen);
         if (cliSock < 0) { continue; }
+<<<<<<< HEAD
         if (NUMTHREADS < 1)
+=======
+        if (numThreads < 10)
+>>>>>>> parent of 9190498... Merge branch 'MyBranch'
         {
             NUMTHREADS++;
             pthread_t cliThread;
