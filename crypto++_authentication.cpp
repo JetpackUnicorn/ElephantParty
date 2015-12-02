@@ -171,7 +171,7 @@ int main( int argc , char *argv[]) {
   string account_num, account_name;
 
   std::ifstream mycard;
-  mycard.open (Card_name);
+  mycard.open (Card_name.c_str());
   mycard >> account_num;
   mycard >> account_name;
   mycard.close();
