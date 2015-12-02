@@ -25,14 +25,9 @@
 #include "bank.h"
 
 using namespace std;
-<<<<<<< HEAD
 
-static const int BUFSIZE = 512;
 int NUMTHREADS;
-=======
 static const int BUFSIZE = 512;
-
->>>>>>> parent of 29f7de5... Updated server.cpp
 Bank bank;
 map< long long int, int > acctpins;
 
@@ -132,10 +127,6 @@ void * cliThreadRoutine(void * arg)
         numbytes = send(*socket, resp.c_str(), strlen(resp.c_str())+1, 0);
         if (numbytes == -1) { break; }
     }
-<<<<<<< HEAD
-    NUMTHREADS--;
-=======
->>>>>>> parent of 29f7de5... Updated server.cpp
 }
 
 /*int generatePin(long long int acctnum) {
