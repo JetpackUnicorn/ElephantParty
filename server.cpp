@@ -16,6 +16,11 @@
 #include <iomanip>
 #include <fstream>
 #include <time.h>
+#include <map>
+
+#include <cryptopp/modes.h>
+#include <cryptopp/aes.h>
+#include <cryptopp/filters.h>
 
 #include "bank.h"
 
@@ -23,6 +28,9 @@ using namespace std;
 static const int BUFSIZE = 512;
 
 Bank bank;
+map< long long int, int > acctpins;
+
+//int generatePin(long long int acctnum);
 
 vector <string> splitStringByWhitespace(string inString, int limit)
 {
@@ -41,6 +49,13 @@ string formatAmount(float amt)
     stringstream ss;
     ss << fixed << setprecision(2) << amt;
     return ss.str();
+}
+
+bool authenticate( long long int acctnum, int pin ) {
+
+    if( acctpins.find(acctnum) == acctpins.end() ) return false;    // account does not exist
+
+    return (acctpins[acctnum] == pin);
 }
 
 void * cmdShellThreadRoutine(void * arg)
@@ -102,16 +117,59 @@ void * cliThreadRoutine(void * arg)
             float success = bank.transfer(tokens[1], stof(tokens[2]), tokens[3]);
             if (success == true) { resp = "$"+formatAmount(stof(tokens[2]))+" transferred to "+tokens[3]+"."; }
         }
+        else if (tokens[0] == "authenticate")
+        {
+            bool success = authenticate(stoull(tokens[1]), stoi(tokens[2]));
+            if (success == true) { resp = "Authenticated."; }
+        }
         else { resp = "FAILURE"; }
         numbytes = send(*socket, resp.c_str(), strlen(resp.c_str())+1, 0);
         if (numbytes == -1) { break; }
     }
 }
 
+/*int generatePin(long long int acctnum) {
+    
+    string plaintext = to_string(acctnum);
+    string ciphertext;
+
+    CryptoPP::StreamTransformationFilter stfEncryptor(pinAlg, new CryptoPP::StringSink( ciphertext ) );
+    stfEncryptor.Put( reinterpret_cast<const unsigned char*>( plaintext.c_str() ), plaintext.length() + 1 );
+    stfEncryptor.MessageEnd();
+
+    //Convert ciphertext to digits
+    char temp[7];
+    for(int i=0; i<6; ++i) {
+        temp[i] = abs((int)ciphertext[i]) % 10 + 48;
+    }
+    temp[6]='\0';
+
+    string tempstr = temp;
+    int temppin = atoi(tempstr.c_str());
+
+    return temppin;
+}*/
+
+bool readPins() {
+    ifstream pinstr;
+    pinstr.open("pins");
+    if(pinstr.good()) {
+        string line;
+        for(int i=0; i<3; ++i) {
+            getline(pinstr, line);
+            vector<string> tokens = splitStringByWhitespace(line, 2);
+            acctpins[stoull(tokens[0])] = stoi(tokens[1]);
+        }
+    } else { return false; }
+    return true;
+}
+
 void initializeCards() {
 
     string names[3] = {"Alice", "Bob", "Eve"};
-    srand( time(NULL) );
+
+    ofstream pinstr;
+    pinstr.open("pins");
 
     ifstream instr;
     for(int i=0; i<3; ++i) {
@@ -123,9 +181,15 @@ void initializeCards() {
             int numR = rand() % 90000000 + 10000000;
             ostr << numL << numR << "\n\r" << names[i];
             ostr.close();
+
+            long long int acctnum = stoull(to_string(numL)+to_string(numR));
+            int randpin = rand() % 900000 + 100000;
+            acctpins[acctnum] = randpin;
+            pinstr << acctnum << " " << randpin << endl;
         }
         instr.close();
     }
+    pinstr.close();
 }
 
 int main(int argc, char * argv[])
@@ -135,8 +199,11 @@ int main(int argc, char * argv[])
         cerr << "Usage: bank <port>\n";
         exit(1);
     }
-    
-    initializeCards();
+
+    srand( time(NULL) );
+
+    if(!readPins())
+        initializeCards();
 
     int sockfd, newsockfd, portno;
     sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
