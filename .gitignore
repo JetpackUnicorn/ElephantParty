@@ -35,3 +35,9 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Project specifics #
+#####################
+atm
+bank
+proxy

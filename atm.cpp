@@ -11,6 +11,7 @@
 using namespace std;
 
 #include "tcp_client.h"
+#include "Card.h"
 
 bool loggedIn = false;
 string currentUser;
@@ -65,7 +66,7 @@ void balance() {
 	}
 	
 	sstm.str("");
-	sstm << currentUser << " BALANCE";
+	sstm << "balance " << currentUser;
 	string msg = sstm.str();
 	if( !encryptAndSend(msg) ) {
 		cerr << "ERROR: Could not contact server" << endl;
@@ -90,7 +91,7 @@ void withdraw() {
 	// funds check
 
 	sstm.str("");
-	sstm << currentUser << " WITHDRAW " << amt;
+	sstm << "withdraw " << currentUser << " " << amt;
 	string msg = sstm.str();
 	if( !encryptAndSend(msg) ) {
 		cerr << "ERROR: Could not contact server" << endl;
@@ -122,7 +123,7 @@ void transfer() {
 	// funds check
 
 	sstm.str("");
-	sstm << currentUser << " TRANSFER " << amt << " " << recAcct;
+	sstm << "transfer " << currentUser << " " << amt << " " << recAcct;
 	string msg = sstm.str();
 	if( !encryptAndSend(msg) ) {
 		cerr << "ERROR: Could not contact server" << endl;
@@ -147,6 +148,15 @@ void logout() {
 	loggedIn = false;
 }
 
+
+void mainmenu(){
+  
+  cout<<"Command Option:\n"<<"login\n"<<"balance\n"<<"withdraw\n"<<"transfer\n"<<"logout\n\r";
+  
+}
+
+
+
 int main(int argc , char *argv[])
 {
 	if( argc != 2 ) {
@@ -157,16 +167,30 @@ int main(int argc , char *argv[])
 	int portNum = atoi(argv[1]);
 	string data, encryptedData;
 
+	Namecard alice;
+    	alice.readAcard("Alice2.card");
+	cout<<"test - alice card number : "<<alice.getCardNum()<<endl;
+    	cout<<"test - alice card name : "<<alice.getCardName()<<endl;
+
 	string command;
 	while(true) {
+    
+    mainmenu();
 		cout << "ATM $";
 		cin >> command;
-
+    
 		if(command == "login") login(portNum);
 		else if(command == "balance") balance();
 		else if(command == "withdraw") withdraw();
 		else if(command == "transfer") transfer();
-		else if(command == "logout") logout();
+    else if(command == "logout")
+    {
+      logout();
+      cout<<"lose connection to ATM\n\r";
+      break;
+    }
+    else mainmenu();
+      
 	}
 
 

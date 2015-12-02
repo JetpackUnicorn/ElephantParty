@@ -8,3 +8,6 @@ OR
 <code>g++ proxy.cpp tcp_client.cpp -o proxy</code>.
 
 We can eventually create a MAKE file that will do all of this for us, but for now, do this.
+
+To compile Card.h, please use c++11 by
+<code>g++ -std=c++11 ATM.cpp tcp_client.cpp -o atm</code>
