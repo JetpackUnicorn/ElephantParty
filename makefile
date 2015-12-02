@@ -7,7 +7,7 @@ atm: atm.o tcp_client.o
 	$(CXX) atm.o tcp_client.o -o atm
 
 proxy: proxy.o tcp_client.o
-	$(CXX) atm.o tcp_client.o -o proxy
+	$(CXX) proxy.o tcp_client.o -o proxy
 
 bank: bank.o server.o
 	$(CXX) -pthread bank.o server.o -o bank
