@@ -15,13 +15,14 @@ public:
 
   Namecard () {}
 
-  void readAcard(string name) {
+  bool readAcard(string name) {
 
     ifstream in_str;
     in_str.open(name.c_str());
 
     if (!in_str.good()) {
       std::cerr << "Can't open " << in_str << " to read.\n";
+      return false;
     }
     
     string input_num;
@@ -35,6 +36,7 @@ public:
     cardName = input_name;
     
     in_str.close();
+    return true;
   }
 
   void setCardNum(long long int x) { cardNum = x; }

@@ -53,6 +53,28 @@ bool login() {
 	cin >> pinNum;
 
 	// Authentication
+	Namecard card;
+	if(!card.readAcard(username+".card")) {
+		cout << "Card not found." << endl;
+		return false;
+	}
+
+	sstm.str("");
+	sstm << "authenticate " << card.getCardNum() << " " << pinNum;
+	string msg = sstm.str();
+	if( !encryptAndSend(msg) ) {
+		cerr << "ERROR: Could not contact server" << endl;
+	}
+	else {
+		string resp = receiveAndDecrypt();
+		if(resp != "Authenticated.") {
+			cout << "Authentication failed." << endl;
+			return false;
+		}
+		else {
+			cout << "Welcome" << endl;
+		}
+	}
 	
 	loggedIn = true;
 	currentUser = username;
@@ -177,7 +199,7 @@ int main(int argc , char *argv[])
 		cout << "Could not establish connection to bank. Terminating session." << endl;
 		return 0;
 	} else {
-		cout << "Connected. Welcome" << endl;
+		cout << "Connected." << endl;
 	}
 
 	string command;

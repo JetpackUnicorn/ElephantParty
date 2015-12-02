@@ -10,7 +10,7 @@ proxy: proxy.o tcp_client.o
 	$(CXX) proxy.o tcp_client.o -o proxy
 
 bank: bank.o server.o
-	$(CXX) -pthread bank.o server.o -o bank
+	$(CXX) -pthread bank.o server.o -o bank -lcrypto++
 
 atm.o: atm.cpp
 	$(CXX) $(CXXFLAGS) atm.cpp
