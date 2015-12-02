@@ -42,3 +42,4 @@ atm
 bank
 proxy
 test
+*.card
