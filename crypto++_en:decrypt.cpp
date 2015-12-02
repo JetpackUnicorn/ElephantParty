@@ -41,71 +41,23 @@ using std::exception;
 #include <assert.h>
 #include <cryptopp/queue.h>
 using CryptoPP::ByteQueue;
+#include <sstream>
 
 
 
-
-
-
-/*
-void SavePublicKey(const string& filename, const RSA::PublicKey& key)
-{
-  ByteQueue queue;
-  key.Save(queue);
-  
-  Save(filename, queue);
-}
-
-void SavePrivateKey(const string& filename, const RSA::PrivateKey& key)
-{
-  ByteQueue queue;
-  key.Save(queue);
-  
-  Save(filename, queue);
+string ToString (const CryptoPP::Integer & n){
+  std::ostringstream os;
+  os<< n;
+  return os.str();
 }
 
 
-void LoadPublicKey(const string& filename, RSA::PublicKey& key)
-{
-  ByteQueue queue;
-  Load(filename, queue);
-  
-  key.Load(queue);
-}
-
-void LoadPrivateKey(const string& filename, RSA::PrivateKey& key)
-{
-  ByteQueue queue;
-  Load(filename, queue);
-  
-  key.Load(queue);
-}
-*/
- 
-/*
-
-void PrintPrivateKey(const RSA::PrivateKey& key)
-{
-  cout << "n: " << key.GetModulus() << endl;
-  
-  cout << "d: " << key.GetPrivateExponent() << endl;
-  cout << "e: " << key.GetPublicExponent() << endl;
-  
-  cout << "p: " << key.GetPrime1() << endl;
-  cout << "q: " << key.GetPrime2() << endl;
-}
-
-void PrintPublicKey(const RSA::PublicKey& key)
-{
-  cout << "n: " << key.GetModulus() << endl;
-  cout << "e: " << key.GetPublicExponent() << endl;
-}
-*/
 
 //********************************************************************************
 
-void RSA_Encryption(CryptoPP::Integer & m, CryptoPP::Integer & c){
+void RSA_Encryption(const string & plain, string & cipher){
   //Encryption
+  AutoSeededRandomPool rng;
   
   //Load public key
   CryptoPP::RSA::PublicKey pubKey;
@@ -115,36 +67,21 @@ void RSA_Encryption(CryptoPP::Integer & m, CryptoPP::Integer & c){
   bytes.MessageEnd();
   pubKey.Load(bytes);
   
-
-  //AutoSeededRandomPool rng;
-  //Encryption
+ 
+  RSAES_OAEP_SHA_Encryptor e(pubKey);
   
-  //CryptoPP::Integer n("0xbeaadb3d839f3b5f"), e("0x11"), d("0x21a5ae37b9959db9");
-  
-  
-  //pubKey.Initialize(n, e);
-  
-  //CryptoPP::Integer m, c;
-  std::string message = "Withdraw 50";
-  
-  std::cout << "message: " << message << std::endl;
-  
-  // Treat the message as a big endian byte array
-  m = CryptoPP::Integer((const byte *)message.data(), message.size());
-  std::cout << "m: " << std::hex << m << std::endl;
-  
-  // Encrypt
-  c = pubKey.ApplyFunction(m);
-  std::cout << "c: " << std::hex << c << std::endl;
-  //FileSink("encrypted.dat").Put(sbbCipherText.Begin(), sbbCipherText.Size());
-
+  StringSource ss1(plain, true,
+                   new PK_EncryptorFilter(rng, e,
+                                          new StringSink(cipher)
+                                          ) // PK_EncryptorFilter
+                   ); // StringSource
 }
 
 //********************************************************************************
 
-void RSA_Decryption(CryptoPP::Integer & c){
+void RSA_Decryption(const string & plain, string cipher){
   //Decryption
-  
+  AutoSeededRandomPool rng;
   //Load private key
   CryptoPP::RSA::PrivateKey privKey;
   // Load private key
@@ -153,25 +90,20 @@ void RSA_Decryption(CryptoPP::Integer & c){
   file.TransferTo(bytes);
   bytes.MessageEnd();
   privKey.Load(bytes);
+
+  string recovered;
   
-  //CryptoPP::Integer n("0xbeaadb3d839f3b5f"), e("0x11"), d("0x21a5ae37b9959db9");
-  //c = 0x3f47c32e8e17e291;
-  //CryptoPP::Integer c(0x3f47c32e8e17e291), r;
+  RSAES_OAEP_SHA_Decryptor d(privKey);
   
-  CryptoPP::AutoSeededRandomPool prng;
-  CryptoPP::Integer r;
-  std::string recovered;
+  StringSource ss2(cipher, true,
+                   new PK_DecryptorFilter(rng, d,
+                                          new StringSink(recovered)
+                                          ) // PK_DecryptorFilter
+                   ); // StringSource
   
-  // Decrypt
-  r = privKey.CalculateInverse(prng, c);
-  std::cout << "r: " << std::hex << r << std::endl;
-  
-  // Round trip the message
-  size_t req = r.MinEncodedSize();
-  recovered.resize(req);
-  r.Encode((byte *)recovered.data(), recovered.size());
-  
-  std::cout << "recovered: " << recovered << std::endl;}
+  assert (plain == recovered);
+  std::cout << "recovered: " << recovered << std::endl;
+}
 
 
 
@@ -208,8 +140,9 @@ int main( int argc , char *argv[]) {
   
   CryptoPP::Integer m, c;
   
-  RSA_Encryption(m, c);
-  RSA_Decryption(c);
+  string plain = "hello world_ alice", cipher;
+  RSA_Encryption(plain, cipher);
+  RSA_Decryption(plain, cipher);
   
   
 }
