@@ -238,11 +238,7 @@ int main(int argc, char * argv[])
         socklen_t cliLen = sizeof(cliAddr);
         int cliSock = accept(sockfd, (struct  sockaddr *) &cliAddr, &cliLen);
         if (cliSock < 0) { continue; }
-<<<<<<< HEAD
         if (NUMTHREADS < 1)
-=======
-        if (numThreads < 10)
->>>>>>> parent of 29f7de5... Updated server.cpp
         {
             numThreads++;
             pthread_t cliThread;
