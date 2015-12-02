@@ -1,4 +1,6 @@
 #include <cryptopp/base64.h>
+using CryptoPP::Base64Decoder;
+using CryptoPP::Base64Encoder;
 #include <cryptopp/modes.h>
 #include <cryptopp/integer.h>
 using CryptoPP::Integer;
@@ -14,6 +16,7 @@ using CryptoPP::RSA;
 using CryptoPP::InvertibleRSAFunction;
 using CryptoPP::RSAES_OAEP_SHA_Encryptor;
 using CryptoPP::RSAES_OAEP_SHA_Decryptor;
+using CryptoPP::RSAFunction;
 #include <cryptopp/filters.h>
 using CryptoPP::StringSink;
 using CryptoPP::StringSource;
@@ -101,44 +104,74 @@ void PrintPublicKey(const RSA::PublicKey& key)
 
 //********************************************************************************
 
-void RSA_Encryption(SecByteBlock & sbbCipherText){
+void RSA_Encryption(CryptoPP::Integer & m, CryptoPP::Integer & c){
   //Encryption
   
   //Load public key
-  RSAES_OAEP_SHA_Encryptor pubkey(FileSource("pubkey.txt", true, new Base64Decoder)));
+  CryptoPP::RSA::PublicKey pubKey;
+  CryptoPP::ByteQueue bytes;
+  FileSource file("pubkey.txt", true, new Base64Decoder);
+  file.TransferTo(bytes);
+  bytes.MessageEnd();
+  pubKey.Load(bytes);
+  
+
+  //AutoSeededRandomPool rng;
+  //Encryption
+  
+  //CryptoPP::Integer n("0xbeaadb3d839f3b5f"), e("0x11"), d("0x21a5ae37b9959db9");
   
   
-  AutoSeededRandomPool rng;
-  pubkey.Encrypt(
-                 rng,
-                 (byte const*) strShortString.data(),
-                 strShortString.size(),
-                 sbbCipherText.Begin());
+  //pubKey.Initialize(n, e);
   
+  //CryptoPP::Integer m, c;
+  std::string message = "Withdraw 50";
+  
+  std::cout << "message: " << message << std::endl;
+  
+  // Treat the message as a big endian byte array
+  m = CryptoPP::Integer((const byte *)message.data(), message.size());
+  std::cout << "m: " << std::hex << m << std::endl;
+  
+  // Encrypt
+  c = pubKey.ApplyFunction(m);
+  std::cout << "c: " << std::hex << c << std::endl;
   //FileSink("encrypted.dat").Put(sbbCipherText.Begin(), sbbCipherText.Size());
 
 }
 
 //********************************************************************************
 
-void RSA_Decryption(const SecByteBlock & sbbCipherText){
+void RSA_Decryption(CryptoPP::Integer & c){
   //Decryption
   
   //Load private key
-  RSAES_OAEP_SHA_Decryptor privkey(FileSource("privkey.txt", true, new Base64Decoder)));
+  CryptoPP::RSA::PrivateKey privKey;
+  // Load private key
+  CryptoPP::ByteQueue bytes;
+  FileSource file("privkey.txt", true, new Base64Decoder);
+  file.TransferTo(bytes);
+  bytes.MessageEnd();
+  privKey.Load(bytes);
   
-  std::string plaintext;
+  //CryptoPP::Integer n("0xbeaadb3d839f3b5f"), e("0x11"), d("0x21a5ae37b9959db9");
+  //c = 0x3f47c32e8e17e291;
+  //CryptoPP::Integer c(0x3f47c32e8e17e291), r;
   
-
-  AutoSeededRandomPool rng;
-  /*
-  privkey.Decrypt(
-                 rng,
-                 (byte const*) sbbCipherText.data(),
-                 sbbCipherText.size(),
-                 sbbCipherText.Begin());
-   */
-}
+  CryptoPP::AutoSeededRandomPool prng;
+  CryptoPP::Integer r;
+  std::string recovered;
+  
+  // Decrypt
+  r = privKey.CalculateInverse(prng, c);
+  std::cout << "r: " << std::hex << r << std::endl;
+  
+  // Round trip the message
+  size_t req = r.MinEncodedSize();
+  recovered.resize(req);
+  r.Encode((byte *)recovered.data(), recovered.size());
+  
+  std::cout << "recovered: " << recovered << std::endl;}
 
 
 
@@ -172,13 +205,12 @@ int main( int argc , char *argv[]) {
   Base64Encoder pubkeysink(new FileSink("pubkey.txt"));
   pubkey.DEREncode(pubkeysink);
   pubkeysink.MessageEnd();
- 
   
-  string strShortString =
-  "Alice: Withdraw balance 50";
-  // Cannot use std::string for buffer;
-  // its internal storage might not be contiguous
-  SecByteBlock sbbCipherText(pubkey.CipherTextLength(strShortString.size()));
+  CryptoPP::Integer m, c;
+  
+  RSA_Encryption(m, c);
+  RSA_Decryption(c);
+  
   
 }
 
