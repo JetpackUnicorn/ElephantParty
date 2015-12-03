@@ -377,10 +377,6 @@ int main(int argc , char *argv[])
 	int portNum = atoi(argv[1]);
 	string data, encryptedData;
 
-	Namecard alice;
-    	alice.readAcard("Alice2.card");
-	cout<<"test - alice card number : "<<alice.getCardNum()<<endl;
-    	cout<<"test - alice card name : "<<alice.getCardName()<<endl;
 
     cout << "Connecting to bank..." << endl;
     if( !c.conn("localhost", portNum) ) {
