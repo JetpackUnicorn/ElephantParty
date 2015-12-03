@@ -1,6 +1,6 @@
 #include <cryptopp/base64.h>
-using CryptoPP::Base64Decoder;
 using CryptoPP::Base64Encoder;
+using CryptoPP::Base64Decoder;
 #include <cryptopp/modes.h>
 #include <cryptopp/integer.h>
 using CryptoPP::Integer;
@@ -12,23 +12,23 @@ using CryptoPP::AutoSeededRandomPool;
 #include <cryptopp/pssr.h>
 using CryptoPP::PSSR;
 #include <cryptopp/rsa.h>
-using CryptoPP::RSA;
 using CryptoPP::InvertibleRSAFunction;
+using CryptoPP::RSASS;
+using CryptoPP::RSA;
+using CryptoPP::RSAFunction;
 using CryptoPP::RSAES_OAEP_SHA_Encryptor;
 using CryptoPP::RSAES_OAEP_SHA_Decryptor;
-using CryptoPP::RSAFunction;
-#include <cryptopp/filters.h>
-using CryptoPP::StringSink;
-using CryptoPP::StringSource;
 using CryptoPP::PK_EncryptorFilter;
 using CryptoPP::PK_DecryptorFilter;
+#include <cryptopp/filters.h>
+using CryptoPP::SignerFilter;
+using CryptoPP::SignatureVerificationFilter;
+using CryptoPP::StringSink;
+using CryptoPP::StringSource;
 #include <cryptopp/cryptlib.h>
 using CryptoPP::Exception;
-using CryptoPP::DecodingResult;
 #include <cryptopp/sha.h>
 using CryptoPP::SHA1;
-#include <cryptopp/SecBlock.h>
-using CryptoPP::SecByteBlock;
 #include <string>
 using std::string;
 #include <iostream>
@@ -45,17 +45,8 @@ using CryptoPP::ByteQueue;
 
 
 
-string ToString (const CryptoPP::Integer & n){
-  std::ostringstream os;
-  os<< n;
-  return os.str();
-}
 
-
-
-//********************************************************************************
-
-void RSA_Encryption(const string & plain, string & cipher){
+string RSA_Encryption(const string & plain){
   //Encryption
   AutoSeededRandomPool rng;
   
@@ -67,19 +58,21 @@ void RSA_Encryption(const string & plain, string & cipher){
   bytes.MessageEnd();
   pubKey.Load(bytes);
   
- 
+  
   RSAES_OAEP_SHA_Encryptor e(pubKey);
   
+  string cipher;
   StringSource ss1(plain, true,
                    new PK_EncryptorFilter(rng, e,
                                           new StringSink(cipher)
                                           ) // PK_EncryptorFilter
                    ); // StringSource
+  return cipher;
 }
 
 //********************************************************************************
 
-void RSA_Decryption(const string & plain, string cipher){
+string RSA_Decryption(const string & cipher){
   //Decryption
   AutoSeededRandomPool rng;
   //Load private key
@@ -90,7 +83,7 @@ void RSA_Decryption(const string & plain, string cipher){
   file.TransferTo(bytes);
   bytes.MessageEnd();
   privKey.Load(bytes);
-
+  
   string recovered;
   
   RSAES_OAEP_SHA_Decryptor d(privKey);
@@ -101,25 +94,76 @@ void RSA_Decryption(const string & plain, string cipher){
                                           ) // PK_DecryptorFilter
                    ); // StringSource
   
-  assert (plain == recovered);
-  std::cout << "recovered: " << recovered << std::endl;
+  //assert (plain == recovered);
+  std::cout << "decrypted plain: " << recovered << std::endl;
+  return recovered;
 }
 
-
-
- //********************************************************************************
-
-int main( int argc , char *argv[]) {
-
-  /*
-  Integer n("0xbeaadb3d839f3b5f"), e("0x11"), d("0x21a5ae37b9959db9");
+//signature
+string signature_sign(const string & msg){
   
-  RSA::PublicKey pubKey;
-  pubKey.Initialize(n, e);
-  */
-   
+  // Setup
+  string message = msg;
+  cout << "unsigned message: "<< msg <<endl;
+  RSA::PrivateKey privateKey;
+  AutoSeededRandomPool rng;
   
-  // Generate the keypair every time the server starts
+  // Load private key
+  CryptoPP::ByteQueue bytes;
+  FileSource file("privkey.txt", true, new Base64Decoder);
+  file.TransferTo(bytes);
+  bytes.MessageEnd();
+  privateKey.Load(bytes);
+  
+  // Sign and Encode
+  RSASS<PSSR, SHA1>::Signer signer(privateKey);
+  
+  string signature;
+  // StringSource
+  StringSource(message, true,
+               new SignerFilter(rng, signer,
+                                new StringSink(signature),
+                                true // putMessage
+                                ) // SignerFilter
+               );
+  return signature;
+}
+
+string signature_verify(const string & signature){
+  
+  RSA::PublicKey publicKey;
+  string recovered, message;
+  
+  // Load public key
+  CryptoPP::ByteQueue bytes;
+  FileSource file("pubkey.txt", true, new Base64Decoder);
+  file.TransferTo(bytes);
+  bytes.MessageEnd();
+  publicKey.Load(bytes);
+  
+  // Verify and Recover
+  RSASS<PSSR, SHA1>::Verifier verifier(publicKey);
+  
+  StringSource(signature, true,
+               new SignatureVerificationFilter(
+                                               verifier,
+                                               new StringSink(recovered),
+                                               SignatureVerificationFilter::THROW_EXCEPTION |
+                                               SignatureVerificationFilter::PUT_MESSAGE
+                                               ) // SignatureVerificationFilter
+               ); // StringSource
+  
+  
+  cout << "Verified Message: " << "'" << recovered << "'" << endl;
+  return recovered;
+  
+}
+
+void SharedKey_Init(){
+  
+  // InvertibleRSAFunction is used directly only because the private key
+  // won't actually be used to perform any cryptographic operation;
+  // otherwise, an appropriate typedef'ed type from rsa.h would have been used.
   AutoSeededRandomPool rng;
   InvertibleRSAFunction privkey;
   privkey.Initialize(rng, 1024);
@@ -133,16 +177,44 @@ int main( int argc , char *argv[]) {
   // Suppose we want to store the public key separately,
   // possibly because we will be sending the public key to a third party.
   RSAFunction pubkey(privkey);
-  
   Base64Encoder pubkeysink(new FileSink("pubkey.txt"));
   pubkey.DEREncode(pubkeysink);
   pubkeysink.MessageEnd();
   
-  CryptoPP::Integer m, c;
+}
+
+
+string encryptAndSend(string msg) {
   
-  string plain = "hello world_ alice", cipher;
-  RSA_Encryption(plain, cipher);
-  RSA_Decryption(plain, cipher);
+  // encryption
+  string encrypted_msg = RSA_Encryption(msg);
+  // sign
+  string signed_msg = signature_sign(encrypted_msg);
+  
+  return signed_msg;
+}
+
+string receiveAndDecrypt(string resp) {
+
+  // verify
+  string verified_msg = signature_verify(resp);
+  // decryption
+  string decrypted_msg = RSA_Decryption(verified_msg);
+  
+  return decrypted_msg;
+}
+
+
+
+ //********************************************************************************
+
+int main( int argc , char *argv[]) {
+
+  SharedKey_Init();
+  
+  string plain = "hello world_ alice";
+  string resp = encryptAndSend(plain);
+  string msg_recovered = receiveAndDecrypt(resp);
   
   
 }
