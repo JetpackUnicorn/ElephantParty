@@ -55,6 +55,7 @@ using CryptoPP::SHA1;
 
 using namespace std;
 
+//********************************************************************************
 static const int BUFSIZE = 512;
 int NUMTHREADS;
 Bank BANK;
@@ -63,7 +64,7 @@ InvertibleRSAFunction privkey;
 
 
 //int generatePin(long long int acctnum);
-
+//********************************************************************************
 vector <string> splitStringByWhitespace(string inString, int limit)
 {
     string buffer;
@@ -82,7 +83,7 @@ string formatAmount(float amt)
     ss << fixed << setprecision(2) << amt;
     return ss.str();
 }
-
+//********************************************************************************
 bool authenticate( long long int acctnum, int pin ) {
 
     if( acctpins.find(acctnum) == acctpins.end() ) return false;    // account does not exist
@@ -90,7 +91,7 @@ bool authenticate( long long int acctnum, int pin ) {
     return (acctpins[acctnum] == pin);
 }
 
-
+//********************************************************************************
 string RSA_Encryption(const string & plain){
   //Encryption
   AutoSeededRandomPool rng;
@@ -135,7 +136,7 @@ string RSA_Decryption(const string & cipher){
   return recovered;
 }
 
-//signature
+//********************************************************************************
 string signature_sign(const string & msg){
   
   // Setup
@@ -156,7 +157,7 @@ string signature_sign(const string & msg){
                );
   return signature;
 }
-
+//********************************************************************************
 string signature_verify(const string & signature){
   
   RSA::PublicKey publicKey;
@@ -186,24 +187,19 @@ string signature_verify(const string & signature){
   return recovered;
   
 }
-
+//********************************************************************************
 void SharedKey_Init(){
-  
-  // InvertibleRSAFunction is used directly only because the private key
-  // won't actually be used to perform any cryptographic operation;
-  // otherwise, an appropriate typedef'ed type from rsa.h would have been used.
+
   AutoSeededRandomPool rng;
   privkey.Initialize(rng, 1024);
-  
-  // Suppose we want to store the public key separately,
-  // possibly because we will be sending the public key to a third party.
+
   RSAFunction pubkey(privkey);
   Base64Encoder pubkeysink(new FileSink("pubkey_bank.txt"));
   pubkey.DEREncode(pubkeysink);
   pubkeysink.MessageEnd();
   
 }
-
+//********************************************************************************
 void * cmdShellThreadRoutine(void * arg)
 {
     cout << "Welcome to the bank. Available commands:\n"
@@ -233,7 +229,7 @@ void * cmdShellThreadRoutine(void * arg)
     }
 }
 
-
+//********************************************************************************
 void * cliThreadRoutine(void * arg)
 {
     ssize_t numbytes;
@@ -287,7 +283,7 @@ void * cliThreadRoutine(void * arg)
     }
     NUMTHREADS--;
 }
-
+//********************************************************************************
 /*int generatePin(long long int acctnum) {
     
     string plaintext = to_string(acctnum);
@@ -309,7 +305,7 @@ void * cliThreadRoutine(void * arg)
 
     return temppin;
 }*/
-
+//********************************************************************************
 bool readPins() {
     ifstream pinstr;
     pinstr.open("pins");
@@ -323,7 +319,7 @@ bool readPins() {
     } else { return false; }
     return true;
 }
-
+//********************************************************************************
 void initializeCards() {
 
     string names[3] = {"Alice", "Bob", "Eve"};
@@ -351,7 +347,7 @@ void initializeCards() {
     }
     pinstr.close();
 }
-
+//********************************************************************************
 int main(int argc, char * argv[])
 {
     if (argc != 2) 
