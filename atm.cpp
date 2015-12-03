@@ -1,17 +1,19 @@
-#include <iostream>    //cout
+#include <iostream>
 using std::cout;
 using std::endl;
-#include <stdio.h> //printf
-#include <string.h>    //strlen
-#include <string>  //string
+#include <stdio.h>              //printf
+#include <string.h>             //strlen
+#include <string>               //string
 using std::string;
-#include <sstream> //stringstream
-#include <sys/socket.h>    //socket
-#include <arpa/inet.h> //inet_addr
-#include <netdb.h> //hostent
-#include <cstdlib> //exit
+#include <sstream>              //stringstream
+#include <sys/socket.h>         //socket
+#include <arpa/inet.h>          //inet_addr
+#include <netdb.h>              //hostent
+#include <cstdlib>              //exit
 #include <fstream>
+using namespace std;
 
+//cryptopp_libraries
 #include <cryptopp/base64.h>
 using CryptoPP::Base64Encoder;
 using CryptoPP::Base64Decoder;
@@ -44,38 +46,33 @@ using CryptoPP::Exception;
 #include <cryptopp/sha.h>
 using CryptoPP::SHA1;
 
- 
-using namespace std;
 
 #include "tcp_client.h"
 #include "Card.h"
-
+//********************************************************************************
 
 //global variable
 InvertibleRSAFunction privkey;
-
-
 bool loggedIn = false;
 string currentUser;
 tcp_client c;
 stringstream sstm;
-
 string ATM_pubkey;
 string ATM_privkey;
 string bank_pubkey;
 
+//********************************************************************************
+// ras encryption
 string RSA_Encryption(const string & plain){
-  //Encryption
+  // encrypt
   AutoSeededRandomPool rng;
-  
-  //Load public key
+  // load public key
   CryptoPP::RSA::PublicKey pubKey;
   CryptoPP::ByteQueue bytes;
   FileSource file("pubkey_bank.txt", true, new Base64Decoder);
   file.TransferTo(bytes);
   bytes.MessageEnd();
   pubKey.Load(bytes);
-  
   
   RSAES_OAEP_SHA_Encryptor e(pubKey);
   
@@ -108,8 +105,8 @@ string RSA_Decryption(const string & cipher){
   std::cout << "decrypted plain: " << recovered << std::endl;
   return recovered;
 }
-
-//signature
+//********************************************************************************
+//sign signature
 string signature_sign(const string & msg){
   
   // Setup
@@ -127,11 +124,12 @@ string signature_sign(const string & msg){
                new SignerFilter(rng, signer,
                                 new StringSink(signature),
                                 true // putMessage
-                                ) // SignerFilter
+                                )
                );
   return signature;
 }
 
+//********************************************************************************
 string signature_verify(const string & signature){
   
   RSA::PublicKey publicKey;
@@ -146,29 +144,28 @@ string signature_verify(const string & signature){
   
   // Verify and Recover
   RSASS<PSSR, SHA1>::Verifier verifier(publicKey);
-  
+  // StringSource
   StringSource(signature, true,
                new SignatureVerificationFilter(
                                                verifier,
                                                new StringSink(recovered),
                                                SignatureVerificationFilter::THROW_EXCEPTION |
                                                SignatureVerificationFilter::PUT_MESSAGE
-                                               ) // SignatureVerificationFilter
-               ); // StringSource
+                                               )
+               );
   
 
   cout << "Verified Message: " << "'" << recovered << "'" << endl;
   return recovered;
   
 }
-
+//********************************************************************************
 void SharedKey_Init(){
   
   AutoSeededRandomPool rng;
   privkey.Initialize(rng, 1024);
   
-  // Suppose we want to store the public key separately,
-  // possibly because we will be sending the public key to a third party.
+  // public key
   RSAFunction pubkey(privkey);
   Base64Encoder pubkeysink(new FileSink("pubkey_atm.txt"));
   pubkey.DEREncode(pubkeysink);
@@ -176,7 +173,7 @@ void SharedKey_Init(){
   
 }
 
-
+//********************************************************************************
 bool encryptAndSend(string msg) {
 	
   // encryption
@@ -201,6 +198,7 @@ string receiveAndDecrypt() {
 	return resp;
 }
 
+//********************************************************************************
 bool login() {
 	if(loggedIn) {
 		cout << "Already logged in" << endl;
@@ -245,7 +243,7 @@ bool login() {
 	currentUser = username;
 	return true;
 }
-
+//********************************************************************************
 void balance() {
 	if(!loggedIn) {
 		cout << "Not logged in" << endl;
@@ -262,7 +260,7 @@ void balance() {
 		cout << receiveAndDecrypt() << endl;
 	}
 }
-
+//********************************************************************************
 void withdraw() {
 	if(!loggedIn) {
 		cout << "Not logged in" << endl;
@@ -287,7 +285,7 @@ void withdraw() {
 		cout << receiveAndDecrypt() << endl;
 	}
 }
-
+//********************************************************************************
 void transfer() {
 	if(!loggedIn) {
 		cout << "Not logged in" << endl;
@@ -319,7 +317,7 @@ void transfer() {
 		cout << receiveAndDecrypt() << endl;
 	}
 }
-
+//********************************************************************************
 void logout() {
 	if(!loggedIn) {
 		cout << "Not logged in" << endl;
@@ -335,14 +333,14 @@ void logout() {
 	loggedIn = false;
 }
 
-
+//********************************************************************************
 void mainmenu(){
   
   cout<<"\nCommand Options:\n"<<"* login <username>\n"<<"* balance\n"<<"* withdraw <amount>\n"<<"* transfer <amount> <recipient>\n"<<"* logout\n\r";
   
 }
 
-
+//********************************************************************************
 
 int main(int argc , char *argv[])
 {
@@ -396,48 +394,6 @@ int main(int argc , char *argv[])
 	    //else mainmenu();
       
 	}
-
-
-//namecard??
-
-//check authentication, if yes, build the connection
-
-
-    
-    //string host;
-     
-    /*cout<<"Enter hostname: ";
-    cin>>host;*/
-
-    /*int portNum;
-    cout<<"Enter port number: (test 80 for HTTP)";
-    cin>>portNum;*/
-
-
-
-     
-    
-     
-    /*send some data, c.send_data return true if 
-      send(sock , data.c_str() , strlen( data.c_str() ) , 0) >= 0
-      
-      send_data (Operator):
-      http://www.halcon.com/download/reference/send_data.html
-    */
-    /*c.send_data("hello");
-     
-    //receive and echo reply
-    cout<<"----------------------------\n\n";
-    cout<<c.receive(1024);
-    cout<<"\n\n----------------------------\n\n";*/
-     
-
-    /*string command;
-    cout<<"Hello, how can I help you today? (balance, withdraw, transfer or logout)\n";
-    cin>>command;*/
-
-//if statement...
-
 
     return 0;
 }
