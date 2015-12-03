@@ -50,6 +50,11 @@ using namespace std;
 #include "tcp_client.h"
 #include "Card.h"
 
+
+//global variable
+InvertibleRSAFunction privkey;
+
+
 bool loggedIn = false;
 string currentUser;
 tcp_client c;
@@ -89,17 +94,9 @@ string RSA_Decryption(const string & cipher){
   //Decryption
   AutoSeededRandomPool rng;
   //Load private key
-  CryptoPP::RSA::PrivateKey privKey;
-  // Load private key
-  CryptoPP::ByteQueue bytes;
-  FileSource file("privkey_atm.txt", true, new Base64Decoder);
-  file.TransferTo(bytes);
-  bytes.MessageEnd();
-  privKey.Load(bytes);
-  
   string recovered;
   
-  RSAES_OAEP_SHA_Decryptor d(privKey);
+  RSAES_OAEP_SHA_Decryptor d(privkey);
   
   StringSource ss2(cipher, true,
                    new PK_DecryptorFilter(rng, d,
@@ -121,15 +118,8 @@ string signature_sign(const string & msg){
   RSA::PrivateKey privateKey;
   AutoSeededRandomPool rng;
   
-  // Load private key
-  CryptoPP::ByteQueue bytes;
-  FileSource file("privkey_atm.txt", true, new Base64Decoder);
-  file.TransferTo(bytes);
-  bytes.MessageEnd();
-  privateKey.Load(bytes);
-  
   // Sign and Encode
-  RSASS<PSSR, SHA1>::Signer signer(privateKey);
+  RSASS<PSSR, SHA1>::Signer signer(privkey);
   
   string signature;
   // StringSource
@@ -174,18 +164,8 @@ string signature_verify(const string & signature){
 
 void SharedKey_Init(){
   
-  // InvertibleRSAFunction is used directly only because the private key
-  // won't actually be used to perform any cryptographic operation;
-  // otherwise, an appropriate typedef'ed type from rsa.h would have been used.
   AutoSeededRandomPool rng;
-  InvertibleRSAFunction privkey;
   privkey.Initialize(rng, 1024);
-  
-  // With the current version of Crypto++, MessageEnd() needs to be called
-  // explicitly because Base64Encoder doesn't flush its buffer on destruction.
-  Base64Encoder privkeysink(new FileSink("privkey_atm.txt"));
-  privkey.DEREncode(privkeysink);
-  privkeysink.MessageEnd();
   
   // Suppose we want to store the public key separately,
   // possibly because we will be sending the public key to a third party.

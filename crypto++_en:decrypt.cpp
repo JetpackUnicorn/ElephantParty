@@ -43,7 +43,8 @@ using std::exception;
 using CryptoPP::ByteQueue;
 #include <sstream>
 
-
+//global variable
+InvertibleRSAFunction privkey;
 
 
 string RSA_Encryption(const string & plain){
@@ -76,14 +77,15 @@ string RSA_Decryption(const string & cipher){
   //Decryption
   AutoSeededRandomPool rng;
   //Load private key
-  CryptoPP::RSA::PrivateKey privKey;
+  CryptoPP::RSA::PrivateKey privKey = privkey;
   // Load private key
+  /*
   CryptoPP::ByteQueue bytes;
   FileSource file("privkey.txt", true, new Base64Decoder);
   file.TransferTo(bytes);
   bytes.MessageEnd();
   privKey.Load(bytes);
-  
+  */
   string recovered;
   
   RSAES_OAEP_SHA_Decryptor d(privKey);
@@ -105,15 +107,17 @@ string signature_sign(const string & msg){
   // Setup
   string message = msg;
   cout << "unsigned message: "<< msg <<endl;
-  RSA::PrivateKey privateKey;
+  RSA::PrivateKey privateKey = privkey;
   AutoSeededRandomPool rng;
   
   // Load private key
+  /*
   CryptoPP::ByteQueue bytes;
   FileSource file("privkey.txt", true, new Base64Decoder);
   file.TransferTo(bytes);
   bytes.MessageEnd();
   privateKey.Load(bytes);
+   */
   
   // Sign and Encode
   RSASS<PSSR, SHA1>::Signer signer(privateKey);
@@ -159,21 +163,24 @@ string signature_verify(const string & signature){
   
 }
 
-void SharedKey_Init(){
+void SharedKey_Init(InvertibleRSAFunction & privkey){
   
   // InvertibleRSAFunction is used directly only because the private key
   // won't actually be used to perform any cryptographic operation;
   // otherwise, an appropriate typedef'ed type from rsa.h would have been used.
   AutoSeededRandomPool rng;
-  InvertibleRSAFunction privkey;
+  //InvertibleRSAFunction privkey;
   privkey.Initialize(rng, 1024);
   
   // With the current version of Crypto++, MessageEnd() needs to be called
   // explicitly because Base64Encoder doesn't flush its buffer on destruction.
+  /*
   Base64Encoder privkeysink(new FileSink("privkey.txt"));
   privkey.DEREncode(privkeysink);
   privkeysink.MessageEnd();
-  
+  */
+   
+   
   // Suppose we want to store the public key separately,
   // possibly because we will be sending the public key to a third party.
   RSAFunction pubkey(privkey);
@@ -190,6 +197,7 @@ string encryptAndSend(string msg) {
   string encrypted_msg = RSA_Encryption(msg);
   // sign
   string signed_msg = signature_sign(encrypted_msg);
+  cout<<"signed_msg size: "<<signed_msg.length()<<endl;
   
   return signed_msg;
 }
@@ -200,7 +208,7 @@ string receiveAndDecrypt(string resp) {
   string verified_msg = signature_verify(resp);
   // decryption
   string decrypted_msg = RSA_Decryption(verified_msg);
-  
+  cout<<"decrypted_msg size: "<<decrypted_msg.length()<<endl;
   return decrypted_msg;
 }
 
@@ -210,9 +218,11 @@ string receiveAndDecrypt(string resp) {
 
 int main( int argc , char *argv[]) {
 
-  SharedKey_Init();
+  //RSA::PrivateKey privkey;
   
-  string plain = "hello world_ alice";
+  SharedKey_Init(privkey);
+  
+  string plain = "hjklajfsioescnsienonnc  csdaeisjda";
   string resp = encryptAndSend(plain);
   string msg_recovered = receiveAndDecrypt(resp);
   
