@@ -154,11 +154,15 @@ void encryptAndSend(Packet & packet, const string & msg) {
   string encrypted_msg = RSA_Encryption(msg);
   // sign
   string signed_msg = signature_sign(encrypted_msg);
-  cout<<"signed msg length: "<<signed_msg<<endl;
+  cout<<"signed msg length: "<<signed_msg.length()<<endl;
   
   for (int i = 0; i<signed_msg.length(); i++) {
     packet.push_back(signed_msg[i]);
   }
+  string tmp;
+  tmp.append(packet.begin(),packet.end());
+  assert(tmp == signed_msg);
+  cout<<"message check passed\n"<<endl;
 }
 void receiveAndDecrypt(const Packet & packet, string & msg) {
   
@@ -412,7 +416,7 @@ void* client_thread(void* arg)
     //std::string msg = "logged in\n";
     
     Packet response;
-    response.resize(PACKET_SIZE);
+    //response.resize(PACKET_SIZE);
     //std::vector<char> *response_begin = & response[0];
     
     encryptAndSend(response, resp);

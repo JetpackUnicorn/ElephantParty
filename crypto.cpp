@@ -59,8 +59,8 @@ std::string Crypto::SignatureSign(const string & msg)
 
 string Crypto::SignatureVerify(const string & signature){
     string recovered, message;
-    ByteQueue bytes;
-    OppositePublicKey.Load(bytes);
+    //ByteQueue bytes;
+    //OppositePublicKey.Load(bytes);
     RSASS<PSSR, SHA1>::Verifier verifier(OppositePublicKey);
     StringSource(signature, true,
                new SignatureVerificationFilter(
