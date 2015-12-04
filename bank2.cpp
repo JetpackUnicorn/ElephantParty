@@ -19,7 +19,7 @@
 #include <sstream>
 
 #include <sys/types.h>  
-#include "protocol.h"
+#include "crypto.h"
 #include "bank.h"
 
 void* client_thread(void* arg);
@@ -231,34 +231,6 @@ void initializeCards() {
     pinstr.close();
 }
 
-void * cmdShellThreadRoutine(void * arg)
-{
-    cout << "Welcome to the bank. Available commands:\n"
-            << "deposit [username] [amount]\n"
-            << "balance [username]\n";
-    while(1)
-    {
-        cout << "BANK $";
-        string input;
-        getline(cin, input);
-        vector <string> tokens = splitStringByWhitespace(input, 3);
-        if (tokens.size() == 0) { continue; }
-        if (tokens[0] == "deposit")
-        {
-            bool success;
-            try { success = BANK.deposit(tokens[1], stof(tokens[2])); }
-            catch(const invalid_argument& ia) { success = false; }
-            if (success == false) { cerr << "Error on deposit.\n"; }
-        }
-        else if (tokens[0] == "balance")
-        {
-            float amount = BANK.checkBalance(tokens[1]);
-            if (amount >= 0) { cout << "$" << formatAmount(amount) << "\n"; }
-            else if (amount < 0) { cerr << "Error on check balance.\n"; }
-        }
-        else { cout << "Error: invalid command.\n"; }
-    }
-}
 
 
 int main(int argc, char* argv[])
