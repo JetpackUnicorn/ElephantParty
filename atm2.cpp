@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <iostream>
 #include <fstream>
+#include <time.h>
 #include "card.h"
 //#include "protocol.h"
 #include "crypto.h"
@@ -24,7 +25,7 @@ bool loggedIn = false;
 string currentUser;
 stringstream sstm;
 int sock;
-bool sock_alive;
+int logtime;
 
 bool login();
 void balance(); 
@@ -33,7 +34,6 @@ void transfer();
 void logout();
 bool encryptAndSend(const string & msg);
 string receiveAndDecrypt();
-string signature_verify(const string & signature);
 
 int main(int argc, char* argv[])
 {
@@ -43,10 +43,11 @@ int main(int argc, char* argv[])
         return -1;
     }
   
-    //string keyfile = crypto.key_filenameGen();
-    //string opposite_keyfile = keysharing(keyfile);
+    // Create the ATM's public and private keys, and get the bank's public key
     crypto.SharedKeyInit("pubkey_atm.txt");
     crypto.LoadOppositeKey("pubkey_bank.txt");
+
+    // Connect to the proxy
     unsigned short proxport = atoi(argv[1]);
     sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(!sock)
@@ -67,14 +68,21 @@ int main(int argc, char* argv[])
       printf("fail to connect to proxy\n");
       return -1;
     }
-    sock_alive = true;
+    
+    // Main loop - receive user input
     string command;
     while(1)
     {
-      
         std::cout << "\nCommand Options:\n"<<"* login <username>\n"<<"* balance\n"<<"* withdraw <amount>\n"<<"* transfer <amount> <recipient>\n"<<"* logout\n\r";
         std::cout << "\nATM $";
+        
         cin >> command;
+        if(loggedIn && time(0) > logtime+100) {
+            cout << "Time limit exceeded. Logging out..." << endl;
+            logout();
+            break;
+        }
+        
         if(command == "login") {
             if( !login() ) {
                 cout << "Login failed. Terminating session." << endl;
@@ -87,7 +95,6 @@ int main(int argc, char* argv[])
         else if(command == "logout")
         {
             logout();
-            cout<<"lose connection to ATM\n\r";
             break;
         }    
     }
@@ -95,7 +102,8 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-bool login() {
+bool login()
+{
     if(loggedIn) {
         cout << "Already logged in" << endl;
         return false;
@@ -128,16 +136,19 @@ bool login() {
             cout << "Authentication failed." << endl;
             return false;
         }
-    else {
-        cout << "Welcome" << endl;
+        else {
+            cout << "Welcome" << endl;
+        }
     }
-  }
-  loggedIn = true;
-  currentUser = username;
-  return true;
+
+    logtime = time(0);
+    loggedIn = true;
+    currentUser = username;
+    return true;
 }
 
-void balance() {
+void balance()
+{
     if(!loggedIn) {
         cout << "Not logged in" << endl;
         return;
@@ -153,7 +164,8 @@ void balance() {
     }
 }
 
-void withdraw() {
+void withdraw()
+{
     if(!loggedIn) {
         cout << "Not logged in" << endl;
         return;
@@ -175,7 +187,8 @@ void withdraw() {
     }
 }
 
-void transfer() {
+void transfer()
+{
     if(!loggedIn) {
         cout << "Not logged in" << endl;
         return;
@@ -203,7 +216,8 @@ void transfer() {
     }
 }
 
-void logout() {
+void logout()
+{
     if(!loggedIn) {
         cout << "Not logged in" << endl;
         return;
@@ -213,56 +227,26 @@ void logout() {
     loggedIn = false;
 }
 
+// Encrypt and sign the outgoing message, then send it
 bool encryptAndSend(const string & msg) 
 {
   Packet packet;
   string encrypted_msg = crypto.RSAEncryption(msg);
-  cout<<"error_check1"<<endl;
   string signed_msg = crypto.SignatureSign(encrypted_msg);
-  cout<<"error_check2"<<endl;
   for (int i = 0; i<signed_msg.length(); i++) {
     packet.push_back(signed_msg[i]);
   }
-  cout<<"error_check3"<<endl;
   if (PACKET_SIZE != send(sock, &packet[0], PACKET_SIZE, 0))
   {
     printf("failed to send packet\n");
     return false;
   }
-  cout<<"error_check4"<<endl;
   return true;
 }
-string signature_verify(const string & signature){
-  
-  RSA::PublicKey publicKey;
-  string recovered, message;
-  
-  // Load public key
-  CryptoPP::ByteQueue bytes;
-  FileSource file("pubkey_bank.txt", true, new Base64Decoder);
-  file.TransferTo(bytes);
-  bytes.MessageEnd();
-  publicKey.Load(bytes);
-  
-  // Verify and Recover
-  RSASS<PSSR, SHA1>::Verifier verifier(publicKey);
-  
-  StringSource(signature, true,
-               new SignatureVerificationFilter(
-                                               verifier,
-                                               new StringSink(recovered),
-                                               SignatureVerificationFilter::THROW_EXCEPTION |
-                                               SignatureVerificationFilter::PUT_MESSAGE
-                                               ) // SignatureVerificationFilter
-               ); // StringSource
-  
-  
-  cout << "Verified Message: " << "'" << recovered << "'" << endl;
-  return recovered;
-  
-}
 
-string receiveAndDecrypt() {
+// Receive an incoming message, then verify and decrypt it
+string receiveAndDecrypt()
+{
   Packet packet;
   packet.resize(256);
   if(PACKET_SIZE != recv(sock, &packet[0], PACKET_SIZE, 0))
