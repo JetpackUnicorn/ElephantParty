@@ -1,10 +1,10 @@
 # ElephantParty
 
 ### Compilation Note
-I added the tcp_client.h and tcp_client.cpp files as a common interface since they need to be used by both the ATM and the proxy. As such, when compiling either the ATM or proxy, you need to include the tcp_client.cpp file as one of your sources, i.e.
 
-<code>g++ ATM.cpp tcp_client.cpp -o atm</code>
-OR
-<code>g++ proxy.cpp tcp_client.cpp -o proxy</code>.
+g++ -std=c++11 -g3 -ggdb -O0 -Wextra -Wno-unused atm2.cpp crypto.cpp -o atm -lcryptopp
 
-We can eventually create a MAKE file that will do all of this for us, but for now, do this.
+g++ -pthread -g3 -ggdb -O0 -Wall -Wextra -Wno-unused proxy2.cpp -o proxy -lcryptopp
+
+g++ -std=c++11 -pthread -g3 -ggdb -O0 -Wextra -Wno-unused bank2.cpp -o bank -lcryptopp
+
