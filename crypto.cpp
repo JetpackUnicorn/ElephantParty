@@ -4,10 +4,7 @@ using namespace CryptoPP;
 using std::string;
 
 void Crypto::SharedKeyInit(const std::string & publicKeyFile)
-{  
-  // InvertibleRSAFunction is used directly only because the private key
-  // won't actually be used to perform any cryptographic operation;
-  // otherwise, an appropriate typedef'ed type from rsa.h would have been used.
+{
   AutoSeededRandomPool rng;
   InvertibleRSAFunction privkey;
   privkey.Initialize(rng, 1024);
@@ -75,4 +72,26 @@ string Crypto::SignatureVerify(const string & signature){
                ); // StringSource
     return recovered;
 }
+
+string Crypto::key_filenameGen(){
+  
+  CryptoPP::SecByteBlock seed(32 + 16);
+  CryptoPP::OS_GenerateRandomBlock(false, seed, seed.size());
+  CryptoPP::OFB_Mode<AES>::Encryption prng;
+  prng.SetKeyWithIV(seed, 32, seed + 32, 16);
+  CryptoPP::SecByteBlock t(16);
+  prng.GenerateBlock(t, t.size());
+  string s;
+  CryptoPP::HexEncoder hex(new StringSink(s));
+  hex.Put(t, t.size());
+  hex.MessageEnd();
+  return s;
+}
+
+
+
+
+
+
+
 
