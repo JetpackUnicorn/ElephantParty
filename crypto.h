@@ -48,6 +48,7 @@ using CryptoPP::SHA1;
 
 
 typedef std::vector<char> Packet;
+#define PACKET_SIZE 256
 
 
 
