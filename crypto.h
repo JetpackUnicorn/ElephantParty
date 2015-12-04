@@ -45,11 +45,16 @@ using CryptoPP::Exception;
 using CryptoPP::SHA1;
 #include <cryptopp/aes.h>
 #include <cryptopp/hex.h>
+#include <cryptopp/channels.h>
 
 
 typedef std::vector<char> Packet;
+<<<<<<< Updated upstream
 #define PACKET_SIZE 256
 
+=======
+define PACKET_SIZE 256
+>>>>>>> Stashed changes
 
 
 using namespace CryptoPP;
